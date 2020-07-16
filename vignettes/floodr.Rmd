@@ -1,0 +1,267 @@
+---
+title: "Introduction"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+
+workspace <- Sys.getenv("workspace")
+
+```
+
+# Managing data
+
+## Create folders
+
+First, run \code{folder_setup} to setup the folders needed for \code{floodr}.
+
+```{r setup, echo = T, results = "hide"}
+library(floodr)
+
+#> folder_setup("path name")
+```
+
+## Load spatial data
+
+Next step is to set the floodr workspace, define the site name, and load in the stormwater network spatial data. 
+
+These data are from Beaufort, NC, and invert elevations are calculated ahead of time because column names for invert depth differ between different structure types (i.e., pipe ends, junction boxes, etc.).
+
+```{r load, echo=T, message=FALSE, warning=FALSE, results="hide"}
+library(sf)
+library(mapview)
+library(tidyverse)
+
+#> workspace <- "/floodr_output"
+site_name <- "beaufort"
+
+pipes <- st_read(paste0(workspace,"/input_shps/bft_storm_lines_subset.shp")) %>%
+  st_zm() %>%
+  filter(!NOTES %in% "shoreline")
+
+pipe_ends <- st_read(paste0(workspace,"/input_shps/pipe_ends.shp")) %>%
+  st_zm() %>%
+  mutate(INVERTELEV = Elevation - Out1_Dpth) %>%
+  dplyr::select(Elevation, INVERTELEV, Code, Prcnt_Obst, Type_Obst) %>%
+  st_transform(crs = st_crs(pipes))
+
+junction_boxes <- st_read(paste0(workspace,"/input_shps/junction_boxes.shp")) %>%
+  st_zm()%>%
+  mutate(INVERTELEV = if_else(Out1_Dpth != 0, Elevation - Out1_Dpth, 99)) %>%
+  dplyr::select(Elevation, INVERTELEV, Code, Prcnt_Obst, Type_Obst)%>%
+  st_transform(crs = st_crs(pipes))
+
+drop_inlets <- st_read(paste0(workspace,"/input_shps/drop_inlets.shp")) %>%
+  st_zm()%>%
+  mutate(INVERTELEV = Elevation - Out1_Dpth) %>%
+  dplyr::select(Elevation, INVERTELEV, Code,Prcnt_Obst, Type_Obst)%>%
+  st_transform(crs = st_crs(pipes))
+
+catch_basins <- st_read(paste0(workspace,"/input_shps/catch_basins.shp")) %>%
+  st_zm()%>%
+  mutate(INVERTELEV = Elevation - Out1_Dpth) %>%
+  dplyr::select(Elevation, INVERTELEV, Code,Prcnt_Obst, Type_Obst)%>%
+  st_transform(crs = st_crs(pipes))
+
+unknown_structures <- st_read(paste0(workspace,"/input_shps/unknown_elevs_sub.shp")) %>%
+  st_zm() %>%
+  mutate(Elevation = NA,
+         INVERTELEV = NA,
+         Code = TYPE_FEAT,
+         Prcnt_Obst = NA,
+         Type_Obst = NA) %>%
+  dplyr::select(Elevation, INVERTELEV, Code, Prcnt_Obst, Type_Obst) %>%
+  st_transform(crs = st_crs(pipes))
+
+structures <- rbind(pipe_ends,
+                    junction_boxes,
+                    drop_inlets,
+                    catch_basins,
+                    unknown_structures)
+
+```
+
+## Load elevation data
+
+**floodr** comes with a conversion raster to convert NAVD88 to the mean higher high water (MHHW) tidal datum in North Carolina. 
+
+Load this conversion raster and download elevation data for the study area using *get_NOAA_elevation()*.
+
+```{r elevation, echo = T, results = "hide"}
+#> read in conversion rasters for NAVD88 --> MHHW
+NAVD88_MHHW <- floodr::NAVD88_MHHW_NC
+
+#> Download NOAA SLR DEM. Native res is ~3m. We'll request 10ft
+noaa_elev <- floodr::get_NOAA_elevation(x = pipes,
+                                x_EPSG = 102719,
+                                res = 10,
+                                workspace = workspace)
+```
+
+# Model setup
+
+This step converts all input data to the correct spatial projection and units.
+
+## Setup elevation
+
+**floodr** uses the tidal datum of mean higher high water (MHHW) for inundation modeling, so we must convert the downloaded elevation data from NAVD88 to MHHW. 
+
+The converted DEM will be saved in 'workspace/DEMs'.
+
+*DEM_setup* also clips elevation data to the study area for faster processing.
+
+```{r elev_setup, echo = T, results = "hide"}
+#> Convert elevation to MHHW
+bft_elev <-
+  DEM_setup(
+    pipes = pipes,
+    large_DEM = noaa_elev,
+    conversion_raster = NAVD88_MHHW,
+    res = 10,
+    trace_upstream = F,
+    workspace = workspace,
+    overwrite = T
+  )
+```
+
+## Setup pipes & structures
+
+This step structures the pipe and structure data with units and defines the column names that the model will use.
+
+In this case, all stormwater network elevation data is stored in the 'structures' layer.
+
+```{r pipes, echo = T, results = "hide"}
+
+#> Setup pipes and structures with units. Uses surveyed surface & invert elevations
+pipes_n <-
+  setup_pipes(pipes,
+              type = "none",
+              diam = "DIAMETER",
+              diam_units = "in")
+
+structures_n <-
+  setup_structures(
+    structures = structures,
+    type = "elevation",
+    invert = "INVERTELEV",
+    elev = "Elevation",
+    elev_units = "ft",
+    null_value = 99,
+    other_cols = c("Code","Prcnt_Obst","Type_Obst"),
+    workspace = workspace
+  )
+```
+
+# Assemble model
+
+Using properly structured pipe and structure data, we create the model.
+
+What's happening:
+
+- connectivity is identified between pipes and structures
+- missing invert elevations are interpolated up/down the network
+- outlets are automatically identified 
+
+The output model consists of 3 **sf** objects:
+
+- Pipes
+- Nodes (ends of pipes)
+- Structures
+
+```{r model, echo = T, results = "hide"}
+
+bft_model<- assemble_network_model(
+  pipes = pipes_n,
+  structures = structures_n,
+  type = "none",
+  elev = bft_elev,
+  elev_units = "m",
+  use_raster_elevation = F,
+  buffer = 1,
+  guess_connectivity = T
+)
+```
+
+
+# Run the model
+
+**floodr** can model impacts using:
+- a range of water levels
+- spatial data showing extent of flooding
+- time series of downstream water level (in development)
+
+This example shows how to run the model using a range of water levels, from -3 ft MHHW to 4 ft MHHW by 3 inch increments. 
+
+We're also interested in flooding hotspots caused by stormwater network surcharge, so 'model_ponding' is set to *TRUE*
+
+```{r run_model, echo = T, results = "hide"}
+bft_model_output <- model_inundation(
+  model = bft_model,
+  elev = bft_elev,
+  elev_units = "m",
+  from_elevation = -3,
+  to_elevation = 4,
+  step = 3/12,
+  model_ponding = T,
+  site_name = "beaufort",
+  overwrite = T,
+  minimum_area = 0.01,
+  workspace = workspace
+)
+```
+
+# Visualizing results
+
+## Plots
+```{r}
+bft_plot <- viz_structures(model_output = bft_model_output,
+                           model = bft_model,
+                           elev = bft_elev,
+                           type_column = "Code",
+                           filter_value = "D_I",
+                           type = "plot",
+                           # hide_labels = T,
+                           # simplify_labels = T,
+                           # label_size = 2,
+                           # filename = "bft_structures_impact_plot.png",
+                           workspace = workspace)
+
+bft_plot
+```
+
+## Interactive maps
+
+Visualize the minimum water level of impact for all structures, and click on the points to see a plot of percent fill vs. water level!
+
+```{r show model, echo = T}
+bft_int_structures_map <- viz_structures(model_output = bft_model_output,
+                          model = bft_model,
+                           elev = bft_elev,
+                           type = "interactive_map",
+                           workspace = workspace)
+bft_int_structures_map
+```
+
+
+## Use mapview
+
+Use more than just the built-in functions to view results. Results are simply a list of **sf** objects, so you can easily view them using mapview.
+
+```{r model 2, echo=T}
+
+mapview(bft_model_output$ponding %>%
+             arrange(-water_elevation), 
+        zcol="water_elevation",
+        layer.name = "Ponding water level (ft MHHW)")
+
+```

@@ -1,0 +1,45 @@
+Package: floodr
+Type: Package
+Title: Tools to model inundation of stormwater networks 
+Version: 0.1.0
+Author: person("Adam", "Gold", email = "gold@unc.edu", role = c("aut","cre"))
+Maintainer: Adam Gold <gold@unc.edu>
+Description: floodr is a set of tools that allows users to model the impacts of 
+    inundation on stormwater networks. floodr does this by combining spatial 
+    representations of the stormwater network and landscape with a 1-dimensional 
+    model of the stormwater network. The spatial data allows for estimates of 
+    overland flooding extents and the 1-D model uses the overland flooding extent 
+    as a starting point. The 1-D model then propogates flooding through the stormwater 
+    network based on network invert elevations and known obstructions (optional). 
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports:
+  cowplot,
+  data.table,
+  ggplot2,
+  ggrepel,
+  httr,
+  jsonlite,
+  mapview,
+  patchwork,
+  progress,
+  rapidjsonr,
+  raster,
+  sf,
+  rgdal,
+  scales,
+  stars,
+  tidyverse,
+  tmap,
+  units,
+  lidR
+RoxygenNote: 7.1.0
+Depends: 
+    R (>= 2.10),
+    dplyr,
+    sf
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
