@@ -21,6 +21,7 @@ Imports:
   ggrepel,
   httr,
   jsonlite,
+  lidR,
   mapview,
   patchwork,
   progress,
@@ -33,7 +34,7 @@ Imports:
   tidyverse,
   tmap,
   units,
-  lidR
+  velox (>= 0.2.0)
 RoxygenNote: 7.1.0
 Depends: 
     R (>= 2.10),

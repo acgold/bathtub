@@ -8,7 +8,7 @@
 #' @param trace_upstream Logical. Trace NAVD88/MHHW conversion factor upstream?
 #' @param trace_buffer Buffer distance (map units of pipes) around pipes
 #' to search for receiving waters
-#' @param minimum_area km^2. Minimum area of flooding to keep
+#' @param minimum_area km^2. Minimum area of flooding to keep as "downstream flooding"
 #' @param workspace Path to floodr folder
 #' @param overwrite Logical. Overwrite existing data?
 
@@ -41,9 +41,12 @@ DEM_setup <-
     #Conversion factor to make large_DEM units match conv_factor (always "m")
     units::units_options(set_units_mode = "standard")
     conv_fac <-  units::set_units(units::set_units(1, value = elev_units),value = "m") %>% units::drop_units()
+    minimum_area <- units::set_units(minimum_area, "km^2")
 
     #Ff there are other network layer (culverts, virtual drainlines, etc.), they will be combined with pipes here using only spatial attributes
     if(!is.null(other_network_layers)) {
+      cat("Combining all network layers...\n")
+
       num <- length(other_network_layers)
       list_other_layers <- list(NULL)
 
@@ -71,6 +74,8 @@ DEM_setup <-
     }
 
     if (!base::file.exists(base::paste0(workspace, "/DEMs/elev_clip_proj.tif")) | overwrite == T) {
+      cat("Reprojecting & cropping DEM...\n")
+
       elev_ext <- sf::st_transform(ext, raster::crs(large_DEM)) %>% sf::as_Spatial()
       elev_navd_small <- raster::crop(large_DEM, elev_ext, filename = base::paste0(workspace, "/DEMs/elev_clip.tif"), overwrite=T)
 
@@ -90,6 +95,8 @@ DEM_setup <-
     }
 
     if (!base::file.exists(base::paste0(workspace, "/DEMs/conv_clip_proj.tif")) | overwrite == T) {
+      cat("Reprojecting and cropping conversion raster...\n")
+
       conversion_ext <-
         sf::st_transform(ext, raster::crs(conversion_raster)) %>% sf::as_Spatial()
       conversion_small <- raster::crop(conversion_raster, conversion_ext,filename = base::paste0(workspace, "/DEMs/conv_clip.tif"), overwrite = T)
@@ -110,6 +117,8 @@ DEM_setup <-
     }
 
     if (!base::file.exists(base::paste0(workspace, "/DEMs/MHHW_clip_proj.tif")) | overwrite == T) {
+      cat("Creating MHHW DEM...\n")
+
       elev <-
         raster::overlay(
           elev_navd_small_proj,
@@ -134,25 +143,43 @@ DEM_setup <-
       }
 
       if (!base::file.exists(base::paste0(workspace, "/DEMs/MHHW_clip_proj_traced.tif")) | overwrite == T) {
-        elev[elev<-5] <- NA
-        water_level <- elev < 0
-        water_level[water_level == 0] <- NA
+        # elev[elev<-5] <- NA
+        # water_level <- elev < 0
+        # water_level[water_level == 0] <- NA
 
-        clumps <- raster::clump(water_level,directions=8)
+        cat("Tracing MHHW conversion upstream...\n")
+        select_rast <- raster::calc(
+          elev,
+          fun = function(x) {
+            x < 0
+          }
+        )
+        select_rast[select_rast == 0] <- NA
 
-        clump_freq <- freq(clumps)
-        clump_freq_tibble <- tibble::as_tibble(clump_freq) %>%
-          dplyr::mutate(count_km2 = (count * (res(water_level)[1]^2))/1.076e+7) %>%
-          dplyr::filter(count_km2 > minimum_area) %>%
-          stats::na.omit()
+        select_rast_stars <- stars::st_as_stars(select_rast, crs = sf::st_crs(select_rast))
 
-        large_select_raster <- clumps %in% c(clump_freq_tibble$value)
-        large_select_raster[large_select_raster == 0] <- NA
+        select_rast_sf <- sf::st_as_sf(select_rast_stars,
+                                       as_points = FALSE,
+                                       merge = T,
+                                       connect8 = T) %>%
+          mutate(area = sf::st_area(.)) %>%
+          filter(area > minimum_area)
 
-        large_select_raster <- raster::projectRaster(large_select_raster,
-                                                     final_extent,
-                                                     filename = base::paste0(workspace, "/DEMs/water_level.tif"),
-                                                     overwrite = T)
+        # clumps <- raster::clump(water_level,directions=8)
+        #
+        # clump_freq <- freq(clumps)
+        # clump_freq_tibble <- tibble::as_tibble(clump_freq) %>%
+        #   dplyr::mutate(count_km2 = (count * (res(water_level)[1]^2))/1.076e+7) %>%
+        #   dplyr::filter(count_km2 > minimum_area) %>%
+        #   stats::na.omit()
+        #
+        # large_select_raster <- clumps %in% c(clump_freq_tibble$value)
+        # large_select_raster[large_select_raster == 0] <- NA
+
+        # large_select_raster <- raster::projectRaster(large_select_raster,
+        #                                              final_extent,
+        #                                              filename = base::paste0(workspace, "/DEMs/water_level.tif"),
+        #                                              overwrite = T)
 
         pipe_buffer <- sf::st_buffer(pipes, dist = trace_buffer) %>%
           sf::st_union() %>%
@@ -170,22 +197,36 @@ DEM_setup <-
           sf::st_cast("POINT")
 
         point_extract <- point_extract %>%
-          dplyr::mutate(water = raster::extract(large_select_raster,point_extract),
-                 conv = raster::extract(conversion_small_proj,point_extract),
+          sf::st_join(select_rast_sf) %>%
+          dplyr::select(-area) %>%
+          dplyr::mutate(conv = raster::extract(conversion_small_proj,point_extract),
                  DEM = raster::extract(elev_navd_small_proj, point_extract)) %>%
           tibble::as_tibble() %>%
-          dplyr::filter(water == 1) %>%
+          dplyr::filter(layer == 1) %>%
           dplyr::group_by(ID) %>%
           dplyr::summarise(conv = median(conv))
 
         pipe_merge_test <- pipe_merge_test %>%
-          dplyr::left_join(point_extract)
+          dplyr::left_join(point_extract, by = "ID") %>%
+          filter(!is.na(conv))
 
-        rl <- raster::rasterize(pipe_merge_test,
-                                 conversion_small_proj,
-                                 field = "conv",
-                                 update = T,
-                                 filename = base::paste0(workspace,"/DEMs/traced_conversion_rast.tif"), overwrite = T)
+        vx <- velox::velox(conversion_small_proj)
+
+        vx$rasterize(pipe_merge_test, field = "conv", band = 1)
+
+        rl <- vx$as.RasterLayer(band=1)
+
+        # rast_conv_traced <- fasterize::fasterize(pipe_merge_test, raster = conversion_small_proj, field = "conv")
+        #
+        # writeRaster(rl, filename = base::paste0(workspace,"/DEMs/traced_conversion_rast.tif"), overwrite = T)
+
+        # rl <- raster::rasterize(pipe_merge_test,
+        #                          conversion_small_proj,
+        #                          field = "conv",
+        #                          update = T,
+        #                          filename = base::paste0(workspace,"/DEMs/traced_conversion_rast.tif"), overwrite = T)
+
+        cat("Creating MHHW DEM with traced conversion...\n")
 
         new_elev <-
           raster::overlay(

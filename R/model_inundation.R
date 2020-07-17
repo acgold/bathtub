@@ -157,6 +157,8 @@ model_inundation <- function(model,
     }
 
     if(model_ponding == T){
+      cat("")
+
       ponding_shps <- NULL
 
       pb <- progress::progress_bar$new(format = " Modeling ponding from structure overflow [:bar] :current/:total (:percent)", total = length(total_impacted_structures %>% pull(water_elevation) %>% unique()))
@@ -210,6 +212,19 @@ model_inundation <- function(model,
       }
 
       sf::st_write(obj = ponding_shps, dsn = paste0(workspace, "/structures/", site_name, "_ponding_extent.shp"), delete_layer = overwrite, quiet = T)
+      sf::st_write(obj = total_impacted_nodes, dsn = paste0(workspace, "/structures/", site_name, "_imp_nodes.shp"), delete_layer = overwrite, quiet = T)
+      sf::st_write(obj = total_impacted_structures, dsn = paste0(workspace, "/structures/", site_name, "_imp_struc.shp"), delete_layer = overwrite, quiet = T)
+      sf::st_write(obj = total_np_structures, dsn = paste0(workspace, "/structures/", site_name, "_np_struc.shp"), delete_layer = overwrite, quiet = T)
+      sf::st_write(obj = total_impacted_pipes, dsn = paste0(workspace, "/structures/", site_name, "_imp_pipes.shp"), delete_layer = overwrite, quiet = T)
+      sf::st_write(obj = total_flooding, dsn = paste0(workspace, "/structures/", site_name, "_flooding_extent.shp"), delete_layer = overwrite, quiet = T)
+
+      return(list(pipes = total_impacted_pipes,
+                  nodes = total_impacted_nodes,
+                  np_nodes = total_np_nodes,
+                  structures = total_impacted_structures,
+                  np_structures = total_np_structures,
+                  flooding = total_flooding,
+                  ponding = ponding_shps))
 
     }
 
@@ -224,8 +239,7 @@ model_inundation <- function(model,
                 np_nodes = total_np_nodes,
                 structures = total_impacted_structures,
                 np_structures = total_np_structures,
-                flooding = total_flooding,
-                ponding = ponding_shps))
+                flooding = total_flooding))
   }
 
   if(!is.null(overlay)){

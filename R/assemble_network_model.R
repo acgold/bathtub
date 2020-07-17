@@ -128,7 +128,7 @@ assemble_network_model <- function(pipes,
   if(use_raster_elevation == F){
     start_points_elev <- source_nodes %>%
       dplyr::left_join(pipes %>% tibble::as_tibble() %>%
-                  dplyr::select(edgeID, from_elev)) %>%
+                  dplyr::select(edgeID, from_elev), by = "edgeID") %>%
       dplyr::mutate(start_elev = from_elev) %>%
       sf::st_as_sf(coords = c('X', 'Y')) %>%
       sf::st_set_crs(sf::st_crs(pipes)) %>%
@@ -140,7 +140,7 @@ assemble_network_model <- function(pipes,
 
     end_points_elev <- target_nodes %>%
       dplyr::left_join(pipes %>% tibble::as_tibble() %>%
-                  dplyr::select(edgeID, to_elev)) %>%
+                  dplyr::select(edgeID, to_elev), by = "edgeID") %>%
       dplyr::mutate(end_elev = to_elev) %>%
       sf::st_as_sf(coords = c('X', 'Y')) %>%
       sf::st_set_crs(sf::st_crs(pipes)) %>%
@@ -288,8 +288,8 @@ assemble_network_model <- function(pipes,
   }
 
   from_elevation = -3
-  to_elevation = 3
-  step = 0.5
+  to_elevation = 1
+  step = 1
 
   minimum_area <- units::set_units(0.1, "km^2")
   conv_fac <- 1 / units::drop_units(units::set_units(units::set_units(1, elev_units), units(pipes_interp$from_inv_elev)$numerator))

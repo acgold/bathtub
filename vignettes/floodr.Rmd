@@ -166,7 +166,7 @@ structures_n <-
 
 Using properly structured pipe and structure data, we create the model.
 
-What's happening:
+What's happening here:
 
 - connectivity is identified between pipes and structures
 - missing invert elevations are interpolated up/down the network
@@ -177,6 +177,8 @@ The output model consists of 3 **sf** objects:
 - Pipes
 - Nodes (ends of pipes)
 - Structures
+
+All connectivity information is stored in the 'nodes' layer.
 
 ```{r model, echo = T, results = "hide"}
 
@@ -202,7 +204,7 @@ bft_model<- assemble_network_model(
 
 This example shows how to run the model using a range of water levels, from -3 ft MHHW to 4 ft MHHW by 3 inch increments. 
 
-We're also interested in flooding hotspots caused by stormwater network surcharge, so 'model_ponding' is set to *TRUE*
+We're also interested in flooding hotspots caused by stormwater network surcharge, so 'model_ponding' is set to *TRUE*. If you are modeling a large area or lots of model steps, start with 'model_ponding = F'.
 
 ```{r run_model, echo = T, results = "hide"}
 bft_model_output <- model_inundation(

@@ -33,7 +33,7 @@ DEM_setup(
 \item{trace_buffer}{Buffer distance (map units of pipes) around pipes
 to search for receiving waters}
 
-\item{minimum_area}{km^2. Minimum area of flooding to keep}
+\item{minimum_area}{km^2. Minimum area of flooding to keep as "downstream flooding"}
 
 \item{workspace}{Path to floodr folder}
 
