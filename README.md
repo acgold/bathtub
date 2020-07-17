@@ -1,5 +1,5 @@
 # floodr
-<img src="logo.png" alt="a" width="172hw" height="200hw" align="right">
+<img src="logo.svg" alt="a" width="172hw" height="200hw" align="right">
 
 High water events such as storm surge, riverine flooding, or high-tide flooding can inundate a stormwater network and reduce its effectiveness. 
 
