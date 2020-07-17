@@ -72,7 +72,7 @@ DEM_setup <-
 
     if (!base::file.exists(base::paste0(workspace, "/DEMs/elev_clip_proj.tif")) | overwrite == T) {
       elev_ext <- sf::st_transform(ext, raster::crs(large_DEM)) %>% sf::as_Spatial()
-      elev_navd_small <- raster::crop(large_DEM, elev_ext)
+      elev_navd_small <- raster::crop(large_DEM, elev_ext, filename = base::paste0(workspace, "/DEMs/elev_clip.tif"), overwrite=T)
 
       elev_navd_small_proj <-
         raster::projectRaster(
@@ -92,7 +92,7 @@ DEM_setup <-
     if (!base::file.exists(base::paste0(workspace, "/DEMs/conv_clip_proj.tif")) | overwrite == T) {
       conversion_ext <-
         sf::st_transform(ext, raster::crs(conversion_raster)) %>% sf::as_Spatial()
-      conversion_small <- raster::crop(conversion_raster, conversion_ext)
+      conversion_small <- raster::crop(conversion_raster, conversion_ext,filename = base::paste0(workspace, "/DEMs/conv_clip.tif"), overwrite = T)
 
       conversion_small_proj <-
         raster::projectRaster(
@@ -143,7 +143,7 @@ DEM_setup <-
         clump_freq <- freq(clumps)
         clump_freq_tibble <- tibble::as_tibble(clump_freq) %>%
           dplyr::mutate(count_km2 = (count * (res(water_level)[1]^2))/1.076e+7) %>%
-          dply::filter(count_km2 > minimum_area) %>%
+          dplyr::filter(count_km2 > minimum_area) %>%
           stats::na.omit()
 
         large_select_raster <- clumps %in% c(clump_freq_tibble$value)
@@ -170,7 +170,7 @@ DEM_setup <-
           sf::st_cast("POINT")
 
         point_extract <- point_extract %>%
-          dply::mutate(water = raster::extract(large_select_raster,point_extract),
+          dplyr::mutate(water = raster::extract(large_select_raster,point_extract),
                  conv = raster::extract(conversion_small_proj,point_extract),
                  DEM = raster::extract(elev_navd_small_proj, point_extract)) %>%
           tibble::as_tibble() %>%
