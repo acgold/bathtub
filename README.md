@@ -3,7 +3,7 @@
 
 High water events such as storm surge, riverine flooding, or high-tide flooding can inundate a stormwater network and reduce its effectiveness. 
 
-`bathtub` is an R package that estimates the impacts of downstream flooding on stormwater networks using a minimal amount of data. 
+`bathtub` is an R package that estimates the impacts of downstream flooding on stormwater networks using a simple bathtub model and a minimal amount of data. 
 
 The package `bathtub`:
 
