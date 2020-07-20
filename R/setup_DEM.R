@@ -9,13 +9,13 @@
 #' @param trace_buffer Buffer distance (map units of pipes) around pipes
 #' to search for receiving waters
 #' @param minimum_area km^2. Minimum area of flooding to keep as "downstream flooding"
-#' @param workspace Path to floodr folder
+#' @param workspace Path to bathtub folder
 #' @param overwrite Logical. Overwrite existing data?
 
 #' @return DEM clipped to stormwater network, reprojected to projection
 #' of \code{pipes}, and values converted from NAVD88 to MHHW
 #' @examples
-#'site_DEM <- floodr::DEM_setup(
+#'site_DEM <- bathtub::DEM_setup(
 #'pipes = site_pipes,
 #'large_DEM = NC_DEM,
 #'conversion_raster = NAVD88_MHHW_conv,

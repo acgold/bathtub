@@ -1,4 +1,4 @@
-#' Assemble floodr inundation model
+#' Assemble bathtub inundation model
 #'
 #' @param pipes A \code{sf} object denoting stormwater pipes. Result of \code{setup_pipes}
 #' @param structures A \code{sf} object denoting stormwater structures Result of \code{setup_structures}
@@ -264,7 +264,7 @@ assemble_network_model <- function(pipes,
     rbind(new_nodes_end) %>%
     sf::st_as_sf()
 
-  interp <- floodr::interpolate_network(
+  interp <- bathtub::interpolate_network(
     pipes = pipes_elev,
     nodes = new_nodes,
     rounds = interp_rnds
@@ -357,7 +357,7 @@ assemble_network_model <- function(pipes,
     st_as_sf()
 
 
-  with_obstructions <- floodr::add_obstructions(
+  with_obstructions <- bathtub::add_obstructions(
     pipes = pipes_interp,
     nodes = nodes_interp,
     structures = structures_new,

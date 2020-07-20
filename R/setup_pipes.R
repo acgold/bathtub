@@ -1,4 +1,4 @@
-#' Setup pipes for floodr inundation modeling
+#' Setup pipes for bathtub inundation modeling
 #'
 #' @param pipes A \code{sf} object denoting stormwater pipes
 #' @param type Type of invert survey data. 'depth', 'elevation', or 'none'
@@ -12,7 +12,7 @@
 #' @param diam Name of column denoting pipe diameter
 #' @param diam_units Units of \code{diam}
 #' @param other_cols Other columns to preserve
-#' @param workspace Path to floodr folder
+#' @param workspace Path to bathtub folder
 
 #' @return An \code{sf} object denoting pipes formatted with units
 #' @examples

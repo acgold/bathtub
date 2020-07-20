@@ -40,7 +40,7 @@ model_ts <- function(model,
   total_flooding <- NULL
 
   if(ts_datum == "NAVD88"){
-    stop("floodr is currently only able to use MHHW time series data. Please tranform your data to MHHW.")
+    stop("bathtub is currently only able to use MHHW time series data. Please tranform your data to MHHW.")
   }
 
   wl_conv_fac <- 1 / units::drop_units(units::set_units(units::set_units(1, ts_units), units(pipes$from_inv_elev)$numerator))

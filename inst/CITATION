@@ -1,4 +1,4 @@
-citHeader("To cite floodr in publications use:")
+citHeader("To cite bathtub in publications use:")
 
 citEntry(entry = "Article",
          title        = "Article title",
@@ -12,7 +12,7 @@ citEntry(entry = "Article",
          
          textVersion  =
              paste("Adam Gold (2020).",
-                   "floodr.",
+                   "bathtub.",
                    "Journal",
                    "URL none yet")
 )

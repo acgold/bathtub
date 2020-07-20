@@ -24,21 +24,21 @@ interpolate_network <- function(pipes,
     return(list(pipes, nodes))
   }
 
-  O <- floodr::overlapping_nodes(pipes = pipes, nodes = nodes)
+  O <- bathtub::overlapping_nodes(pipes = pipes, nodes = nodes)
 
   pb <- progress::progress_bar$new(format = " Interpolating missing elevations [:bar] :current/:total (:percent)", total = rounds)
 
   i = 1
   while(is.na(i) | i <= rounds){
 
-    A <- floodr::adjust_pipes(pipes = O[[1]], nodes = O[[2]], adjustment = adjustment)
+    A <- bathtub::adjust_pipes(pipes = O[[1]], nodes = O[[2]], adjustment = adjustment)
 
     if(sum(is.na(A[[1]]$from_inv_elev) | is.na(A[[1]]$to_inv_elev)) == 0){
       i = NA
       break()
     }
 
-    O <- floodr::overlapping_nodes(pipes = A[[1]], nodes = A[[2]])
+    O <- bathtub::overlapping_nodes(pipes = A[[1]], nodes = A[[2]])
     # cat(paste0(i,"/",rounds))
     pb$tick(1)
     i = i+1

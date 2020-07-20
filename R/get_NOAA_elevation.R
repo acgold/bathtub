@@ -6,7 +6,7 @@
 #' @param res Desired resolution of DEM in map units of \code{x}
 #' @param min_elev_cutoff Minimum elevation to keep (meters). NOAA SLR DEM uses -99 to denote
 #' permanent water surfaces
-#' @param workspace Path to floodr folder
+#' @param workspace Path to bathtub folder
 #' @return NOAA SLR DEM clipped to stormwater network extent, reprojected to projection
 #' of \code{x}
 #' @examples

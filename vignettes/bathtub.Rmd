@@ -23,17 +23,17 @@ workspace <- Sys.getenv("workspace")
 
 ## Create folders
 
-First, run \code{folder_setup} to setup the folders needed for \code{floodr}.
+First, run \code{folder_setup} to setup the folders needed for \code{bathtub}.
 
 ```{r setup, echo = T, results = "hide"}
-library(floodr)
+library(bathtub)
 
 #> folder_setup("path name")
 ```
 
 ## Load spatial data
 
-Next step is to set the floodr workspace, define the site name, and load in the stormwater network spatial data. 
+Next step is to set the bathtub workspace, define the site name, and load in the stormwater network spatial data. 
 
 These data are from Beaufort, NC, and invert elevations are calculated ahead of time because column names for invert depth differ between different structure types (i.e., pipe ends, junction boxes, etc.).
 
@@ -93,16 +93,16 @@ structures <- rbind(pipe_ends,
 
 ## Load elevation data
 
-**floodr** comes with a conversion raster to convert NAVD88 to the mean higher high water (MHHW) tidal datum in North Carolina. 
+**bathtub** comes with a conversion raster to convert NAVD88 to the mean higher high water (MHHW) tidal datum in North Carolina. 
 
 Load this conversion raster and download elevation data for the study area using *get_NOAA_elevation()*.
 
 ```{r elevation, echo = T, results = "hide"}
 #> read in conversion rasters for NAVD88 --> MHHW
-NAVD88_MHHW <- floodr::NAVD88_MHHW_NC
+NAVD88_MHHW <- bathtub::NAVD88_MHHW_NC
 
 #> Download NOAA SLR DEM. Native res is ~3m. We'll request 10ft
-noaa_elev <- floodr::get_NOAA_elevation(x = pipes,
+noaa_elev <- bathtub::get_NOAA_elevation(x = pipes,
                                 x_EPSG = 102719,
                                 res = 10,
                                 workspace = workspace)
@@ -114,7 +114,7 @@ This step converts all input data to the correct spatial projection and units.
 
 ## Setup elevation
 
-**floodr** uses the tidal datum of mean higher high water (MHHW) for inundation modeling, so we must convert the downloaded elevation data from NAVD88 to MHHW. 
+**bathtub** uses the tidal datum of mean higher high water (MHHW) for inundation modeling, so we must convert the downloaded elevation data from NAVD88 to MHHW. 
 
 The converted DEM will be saved in 'workspace/DEMs'.
 
@@ -197,7 +197,7 @@ bft_model<- assemble_network_model(
 
 # Run the model
 
-**floodr** can model impacts using:
+**bathtub** can model impacts using:
 - a range of water levels
 - spatial data showing extent of flooding
 - time series of downstream water level (in development)

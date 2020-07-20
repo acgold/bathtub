@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tools to model inundation of stormwater networks  • floodr</title>
+<title>Tools to model inundation of stormwater networks  • bathtub</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="apple-touch-icon.png">
@@ -18,8 +18,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="pkgdown.css" rel="stylesheet">
 <script src="pkgdown.js"></script><meta property="og:title" content="Tools to model inundation of stormwater networks ">
-<meta property="og:description" content="floodr is a set of tools that allows users to model the impacts of 
-    inundation on stormwater networks. floodr does this by combining spatial 
+<meta property="og:description" content="bathtub is a set of tools that allows users to model the impacts of 
+    inundation on stormwater networks. bathtub does this by combining spatial 
     representations of the stormwater network and landscape with a 1-dimensional 
     model of the stormwater network. The spatial data allows for estimates of 
     overland flooding extents and the 1-D model uses the overland flooding extent 
@@ -43,7 +43,7 @@
         <span class="icon-bar"></span>
       </button>
       <span class="navbar-brand">
-        <a class="navbar-link" href="index.html">floodr</a>
+        <a class="navbar-link" href="index.html">bathtub</a>
         <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.0</span>
       </span>
     </div>
@@ -57,7 +57,7 @@
   </a>
 </li>
 <li>
-  <a href="articles/floodr.html">Get started</a>
+  <a href="articles/bathtub.html">Get started</a>
 </li>
 <li>
   <a href="reference/index.html">Reference</a>
@@ -75,13 +75,13 @@
 
       </header><div class="row">
   <div class="contents col-md-9">
-<div id="floodr" class="section level1">
+<div id="bathtub" class="section level1">
 <div class="page-header"><h1 class="hasAnchor">
-<a href="#floodr" class="anchor"></a>floodr</h1></div>
+<a href="#bathtub" class="anchor"></a>bathtub</h1></div>
 <p><img src="logo.png" alt="a" width="172hw" height="200hw" align="right"></p>
 <p>High water events such as storm surge, riverine flooding, or high-tide flooding can inundate a stormwater network and reduce its effectiveness.</p>
-<p><code>floodr</code> is an R package that estimates the impacts of downstream flooding on stormwater networks using a minimal amount of data.</p>
-<p>The package <code>floodr</code>:</p>
+<p><code>bathtub</code> is an R package that estimates the impacts of downstream flooding on stormwater networks using a minimal amount of data.</p>
+<p>The package <code>bathtub</code>:</p>
 <ul>
 <li>Models impacts using a <strong>range of water levels</strong>
 </li>
@@ -90,7 +90,7 @@
 <li>Estimates various metrics of impact from high water levels on pipes and structures</li>
 <li>Provides multiple visualization functions ranging from plots to interactive maps</li>
 </ul>
-<p><code>floodr</code> was designed to be practical and can:</p>
+<p><code>bathtub</code> was designed to be practical and can:</p>
 <ul>
 <li>Download and process elevation data from NOAA and USGS within R (DEMs &amp; lidar)</li>
 <li>Interpolate missing invert elevations within the stormwater network</li>
@@ -100,14 +100,14 @@
 <div id="install" class="section level2">
 <h2 class="hasAnchor">
 <a href="#install" class="anchor"></a>Install</h2>
-<p>Install <code>floodr</code> from GitHub using <code>devtools</code>:</p>
+<p>Install <code>bathtub</code> from GitHub using <code>devtools</code>:</p>
 <div class="sourceCode" id="cb1"><pre class="r"><span class="fu"><a href="https://rdrr.io/r/base/library.html">library</a></span>(<span class="no">devtools</span>)
-<span class="fu"><a href="https://devtools.r-lib.org//reference/remote-reexports.html">install_github</a></span>(<span class="st">"acgold/floodr"</span>)</pre></div>
+<span class="fu"><a href="https://devtools.r-lib.org//reference/remote-reexports.html">install_github</a></span>(<span class="st">"acgold/bathtub"</span>)</pre></div>
 </div>
 <div id="how-it-works" class="section level2">
 <h2 class="hasAnchor">
 <a href="#how-it-works" class="anchor"></a>How it works</h2>
-<p><code>floodr</code> combines spatial representations of the stormwater network and landscape with a 1-dimensional model of the stormwater network. The general workflow is:</p>
+<p><code>bathtub</code> combines spatial representations of the stormwater network and landscape with a 1-dimensional model of the stormwater network. The general workflow is:</p>
 <ol>
 <li>The spatial data allows for estimates of overland flooding extents.</li>
 <li>The 1-D model uses the overland flooding extent as a starting point.</li>
@@ -127,7 +127,7 @@
 <div class="citation">
 <h2>Citation</h2>
 <ul class="list-unstyled">
-<li><a href="authors.html">Citing floodr</a></li>
+<li><a href="authors.html">Citing bathtub</a></li>
 </ul>
 </div>
 <div class="developers">

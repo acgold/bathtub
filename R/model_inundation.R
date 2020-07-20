@@ -1,6 +1,6 @@
-#' Run floodr inundation model
+#' Run bathtub inundation model
 #'
-#' @param model A \code{floodr} model. Result of \code{assemble_network_model}
+#' @param model A \code{bathtub} model. Result of \code{assemble_network_model}
 #' @param elev \code{RasterLayer} DEM object for inundation modeling. Result of \code{DEM_setup}.
 #' @param elev_units Units of \code{elev} values
 #' @param overlay \code{sf} object or \code{RasterLayer} of flooding extent (Optional)
@@ -17,7 +17,7 @@
 #' (i.e., contiguous flooded area > min_elev_cutoff)
 #' @param model_ponding Model surface ponding from structure surcharge?
 #' @param site_name Name of site
-#' @param workspace Path to floodr folder
+#' @param workspace Path to bathtub folder
 #'
 #' @return A list of \code{sf} objects denoting impacted infrastructure from each step
 #' of the model. Objects include impacted Pipes, Nodes, and Structures (using propagation

@@ -1,4 +1,4 @@
-#' Setup structures for floodr inundation modeling
+#' Setup structures for bathtub inundation modeling
 #'
 #' @param structures A \code{sf} object denoting stormwater structures
 #' @param type Type of invert survey data. 'depth', 'elevation', or 'none'
@@ -10,7 +10,7 @@
 #' @param elev_units Units of \code{elev} values
 #' @param vdatum Vertical datum of elevation data (only NAVD88 supported)
 #' @param other_cols Other columns to preserve
-#' @param workspace Path to floodr folder
+#' @param workspace Path to bathtub folder
 #'
 #' @return An \code{sf} object denoting structures formatted with units
 #' @examples

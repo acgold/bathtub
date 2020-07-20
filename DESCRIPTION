@@ -1,11 +1,11 @@
-Package: floodr
+Package: bathtub
 Type: Package
 Title: Tools to model inundation of stormwater networks 
 Version: 0.1.0
 Author: person("Adam", "Gold", email = "gold@unc.edu", role = c("aut","cre"))
 Maintainer: Adam Gold <gold@unc.edu>
-Description: floodr is a set of tools that allows users to model the impacts of 
-    inundation on stormwater networks. floodr does this by combining spatial 
+Description: bathtub is a set of tools that allows users to model the impacts of 
+    inundation on stormwater networks. bathtub does this by combining spatial 
     representations of the stormwater network and landscape with a 1-dimensional 
     model of the stormwater network. The spatial data allows for estimates of 
     overland flooding extents and the 1-D model uses the overland flooding extent 
