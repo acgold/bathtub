@@ -6,7 +6,7 @@
 #' @return USGS 3DEP 1/9 arc-second DEM clipped to stormwater network extent, reprojected to projection
 #' of \code{x}.
 #' @examples
-#'usgs_elev <- get_3DEP_elevation(x = pipes, topobathy = T, view = T)
+#'# usgs_elev <- get_3DEP_elevation(x = pipes, topobathy = T, view = T)
 
 get_3DEP_elevation <- function(x,
                                topobathy = F,

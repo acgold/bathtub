@@ -219,19 +219,20 @@ through network (e.g., "np_nodes" &amp; "np_structures"), overland flooding, ove
 Includes the overlay if used rather than a range of water levels.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='no'>bft_model_output</span> <span class='kw'>&lt;-</span> <span class='fu'>model_inundation</span>(
-<span class='kw'>model</span> <span class='kw'>=</span> <span class='no'>bft_model</span>,
-<span class='kw'>elev</span> <span class='kw'>=</span> <span class='no'>bft_elev</span>,
-<span class='kw'>elev_units</span> <span class='kw'>=</span> <span class='st'>"m"</span>,
-<span class='kw'>from_elevation</span> <span class='kw'>=</span> -<span class='fl'>3</span>,
-<span class='kw'>to_elevation</span> <span class='kw'>=</span> <span class='fl'>4</span>,
-<span class='kw'>step</span> <span class='kw'>=</span> <span class='fl'>3</span>/<span class='fl'>12</span>,
-<span class='kw'>model_ponding</span> <span class='kw'>=</span> <span class='no'>T</span>,
-<span class='kw'>site_name</span> <span class='kw'>=</span> <span class='st'>"beaufort"</span>,
-<span class='kw'>overwrite</span> <span class='kw'>=</span> <span class='no'>T</span>,
-<span class='kw'>minimum_area</span> <span class='kw'>=</span> <span class='fl'>0.01</span>,
-<span class='kw'>workspace</span> <span class='kw'>=</span> <span class='no'>workspace</span>
-)</div><div class='output co'>#&gt; <span class='error'>Error in model_inundation(model = bft_model, elev = bft_elev, elev_units = "m",     from_elevation = -3, to_elevation = 4, step = 3/12, model_ponding = T,     site_name = "beaufort", overwrite = T, minimum_area = 0.01,     workspace = workspace): object 'bft_model' not found</span></div></pre>
+    <pre class="examples"><div class='input'># bft_model_output &lt;- model_inundation(
+# model = bft_model,
+# elev = bft_elev,
+# elev_units = "m",
+# from_elevation = -3,
+# to_elevation = 4,
+# step = 3/12,
+# model_ponding = T,
+# site_name = "beaufort",
+# overwrite = T,
+# minimum_area = 0.01,
+# workspace = workspace
+# )
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

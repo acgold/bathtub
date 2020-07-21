@@ -16,11 +16,11 @@
 
 #' @return An \code{sf} object denoting pipes formatted with units
 #' @examples
-#'pipes_n <-
-#'setup_pipes(pipes,
-#'            type = "none",
-#'            diam = "DIAMETER",
-#'            diam_units = "in")
+#'# pipes_n <-
+#'# setup_pipes(pipes,
+#'#             type = "none",
+#'#             diam = "DIAMETER",
+#'#             diam_units = "in")
 
 setup_pipes <- function(pipes,
                         type = "depth",

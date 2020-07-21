@@ -10,7 +10,7 @@
 #' @return NOAA SLR DEM clipped to stormwater network extent, reprojected to projection
 #' of \code{x}
 #' @examples
-#'noaa_elev <- get_NOAA_elevation(x = pipes, workspace = workspace)
+#'# noaa_elev <- get_NOAA_elevation(x = pipes, workspace = workspace)
 
 get_NOAA_elevation <-
   function(x,

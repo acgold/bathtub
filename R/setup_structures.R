@@ -14,17 +14,17 @@
 #'
 #' @return An \code{sf} object denoting structures formatted with units
 #' @examples
-#'structures_n <-
-#'setup_structures(
-#'  structures = structures,
-#'  type = "elevation",
-#'  invert = "INVERTELEV",
-#'  elev = "Elevation",
-#'  elev_units = "ft",
-#'  null_value = 99,
-#'  other_cols = c("Code","Prcnt_Obst","Type_Obst"),
-#'  workspace = workspace
-#')
+#'# structures_n <-
+#'# setup_structures(
+#'#   structures = structures,
+#'#   type = "elevation",
+#'#   invert = "INVERTELEV",
+#'#   elev = "Elevation",
+#'#   elev_units = "ft",
+#'#   null_value = 99,
+#'#   other_cols = c("Code","Prcnt_Obst","Type_Obst"),
+#'#   workspace = workspace
+#'# )
 
 setup_structures<-
   function(structures,

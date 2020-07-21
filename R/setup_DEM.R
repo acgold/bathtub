@@ -15,13 +15,13 @@
 #' @return DEM clipped to stormwater network, reprojected to projection
 #' of \code{pipes}, and values converted from NAVD88 to MHHW
 #' @examples
-#'site_DEM <- bathtub::DEM_setup(
-#'pipes = site_pipes,
-#'large_DEM = NC_DEM,
-#'conversion_raster = NAVD88_MHHW_conv,
-#'res = 5,
-#'workspace = site_workspace
-#' )
+#'# site_DEM <- bathtub::DEM_setup(
+#'# pipes = site_pipes,
+#'# large_DEM = NC_DEM,
+#'# conversion_raster = NAVD88_MHHW_conv,
+#'# res = 5,
+#'# workspace = site_workspace
+#'# )
 
 
 DEM_setup <-

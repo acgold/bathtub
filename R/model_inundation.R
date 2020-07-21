@@ -25,19 +25,19 @@
 #' through network (e.g., "np_nodes" & "np_structures"), overland flooding, overland ponding.
 #' Includes the overlay if used rather than a range of water levels.
 #' @examples
-#'bft_model_output <- model_inundation(
-#'model = bft_model,
-#'elev = bft_elev,
-#'elev_units = "m",
-#'from_elevation = -3,
-#'to_elevation = 4,
-#'step = 3/12,
-#'model_ponding = T,
-#'site_name = "beaufort",
-#'overwrite = T,
-#'minimum_area = 0.01,
-#'workspace = workspace
-#')
+#'# bft_model_output <- model_inundation(
+#'# model = bft_model,
+#'# elev = bft_elev,
+#'# elev_units = "m",
+#'# from_elevation = -3,
+#'# to_elevation = 4,
+#'# step = 3/12,
+#'# model_ponding = T,
+#'# site_name = "beaufort",
+#'# overwrite = T,
+#'# minimum_area = 0.01,
+#'# workspace = workspace
+#'# )
 
 
 model_inundation <- function(model,
@@ -211,12 +211,13 @@ model_inundation <- function(model,
         pb$tick(1)
       }
 
-      sf::st_write(obj = ponding_shps, dsn = paste0(workspace, "/structures/", site_name, "_ponding_extent.shp"), delete_layer = overwrite, quiet = T)
-      sf::st_write(obj = total_impacted_nodes, dsn = paste0(workspace, "/structures/", site_name, "_imp_nodes.shp"), delete_layer = overwrite, quiet = T)
-      sf::st_write(obj = total_impacted_structures, dsn = paste0(workspace, "/structures/", site_name, "_imp_struc.shp"), delete_layer = overwrite, quiet = T)
-      sf::st_write(obj = total_np_structures, dsn = paste0(workspace, "/structures/", site_name, "_np_struc.shp"), delete_layer = overwrite, quiet = T)
-      sf::st_write(obj = total_impacted_pipes, dsn = paste0(workspace, "/structures/", site_name, "_imp_pipes.shp"), delete_layer = overwrite, quiet = T)
-      sf::st_write(obj = total_flooding, dsn = paste0(workspace, "/structures/", site_name, "_flooding_extent.shp"), delete_layer = overwrite, quiet = T)
+      bathtub::save_w_units(x = ponding_shps, full_path = paste0(workspace, "/results/ponding_extent.gpkg"), overwrite = overwrite)
+      bathtub::save_w_units(x = total_impacted_nodes, full_path = paste0(workspace, "/results/imp_nodes.gpkg"), overwrite = overwrite)
+      bathtub::save_w_units(x = total_np_nodes, full_path = paste0(workspace, "/results/np_nodes.gpkg"), overwrite = overwrite)
+      bathtub::save_w_units(x = total_impacted_structures, full_path = paste0(workspace, "/results/imp_struc.gpkg"), overwrite = overwrite)
+      bathtub::save_w_units(x = total_np_structures, full_path = paste0(workspace, "/results/np_struc.gpkg"), overwrite = overwrite)
+      bathtub::save_w_units(x = total_impacted_pipes, full_path = paste0(workspace, "/results/imp_pipes.gpkg"), overwrite = overwrite)
+      bathtub::save_w_units(x = total_flooding, full_path = paste0(workspace, "/results/flooding_extent.gpkg"), overwrite = overwrite)
 
       return(list(pipes = total_impacted_pipes,
                   nodes = total_impacted_nodes,
@@ -228,11 +229,12 @@ model_inundation <- function(model,
 
     }
 
-    sf::st_write(obj = total_impacted_nodes, dsn = paste0(workspace, "/structures/", site_name, "_imp_nodes.shp"), delete_layer = overwrite, quiet = T)
-    sf::st_write(obj = total_impacted_structures, dsn = paste0(workspace, "/structures/", site_name, "_imp_struc.shp"), delete_layer = overwrite, quiet = T)
-    sf::st_write(obj = total_np_structures, dsn = paste0(workspace, "/structures/", site_name, "_np_struc.shp"), delete_layer = overwrite, quiet = T)
-    sf::st_write(obj = total_impacted_pipes, dsn = paste0(workspace, "/structures/", site_name, "_imp_pipes.shp"), delete_layer = overwrite, quiet = T)
-    sf::st_write(obj = total_flooding, dsn = paste0(workspace, "/structures/", site_name, "_flooding_extent.shp"), delete_layer = overwrite, quiet = T)
+    bathtub::save_w_units(x = total_impacted_nodes, full_path = paste0(workspace, "/results/imp_nodes.gpkg"), overwrite = overwrite)
+    bathtub::save_w_units(x = total_np_nodes, full_path = paste0(workspace, "/results/np_nodes.gpkg"), overwrite = overwrite)
+    bathtub::save_w_units(x = total_impacted_structures, full_path = paste0(workspace, "/results/imp_struc.gpkg"), overwrite = overwrite)
+    bathtub::save_w_units(x = total_np_structures, full_path = paste0(workspace, "/results/np_struc.gpkg"), overwrite = overwrite)
+    bathtub::save_w_units(x = total_impacted_pipes, full_path = paste0(workspace, "/results/imp_pipes.gpkg"), overwrite = overwrite)
+    bathtub::save_w_units(x = total_flooding, full_path = paste0(workspace, "/results/flooding_extent.gpkg"), overwrite = overwrite)
 
     return(list(pipes = total_impacted_pipes,
                 nodes = total_impacted_nodes,
@@ -306,12 +308,21 @@ model_inundation <- function(model,
     total_impacted_pipes <- rbind(total_impacted_pipes, impacted_pipes %>% tibble::add_column(water_elevation = select_elev))
     total_flooding <- rbind(total_flooding, select_rast_sf %>% tibble::add_column(water_elevation = select_elev))
 
+    bathtub::save_w_units(x = total_impacted_nodes, full_path = paste0(workspace, "/results/imp_nodes.gpkg"), overwrite = overwrite)
+    bathtub::save_w_units(x = total_np_nodes, full_path = paste0(workspace, "/results/np_nodes.gpkg"), overwrite = overwrite)
+    bathtub::save_w_units(x = total_impacted_structures, full_path = paste0(workspace, "/results/imp_struc.gpkg"), overwrite = overwrite)
+    bathtub::save_w_units(x = total_np_structures, full_path = paste0(workspace, "/results/np_struc.gpkg"), overwrite = overwrite)
+    bathtub::save_w_units(x = total_impacted_pipes, full_path = paste0(workspace, "/results/imp_pipes.gpkg"), overwrite = overwrite)
+    bathtub::save_w_units(x = total_flooding, full_path = paste0(workspace, "/results/flooding_extent.gpkg"), overwrite = overwrite)
+    bathtub::save_w_units(c = select_rast_sf, full_path = paste0(workspace, "/results/overlay.gpkg"), overwrite = overwrite)
+
+
     return(list(pipes = total_impacted_pipes,
                 nodes = total_impacted_nodes,
                 np_nodes =total_np_nodes,
                 structures = total_impacted_structures,
                 np_structures = total_np_structures,
                 flooding = total_flooding,
-                overlay = overlay_clip_proj))
+                overlay = select_rast_sf))
   }
 }
