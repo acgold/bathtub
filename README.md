@@ -14,7 +14,7 @@ The package `bathtub`:
 * Download and process elevation data from NOAA and USGS within R (DEMs & lidar)
 * Interpolate missing invert elevations within the stormwater network
 * Automatically take care of unit conversions and spatial data projections
-* Easily view past results
+* Easily visualize, save, & share results
 
 ## Install
 
@@ -26,8 +26,11 @@ install_github("acgold/bathtub")
 
 ## How it works
 
-`bathtub` combines spatial representations of the stormwater network and landscape with a 1-dimensional model of the stormwater network. The general workflow is:
+`bathtub` combines spatial representations of the stormwater network and landscape with a 1-dimensional model of the stormwater network. `bathtub` uses the `sf`, `stars`, and `raster` packages to provide quick and tidy results.
 
-1. The spatial data allows for estimates of overland flooding extents.
-2. The 1-D model uses the overland flooding extent as a starting point. 
-3. The 1-D model then propogates flooding through the stormwater network based on invert elevations and known obstructions (optional).
+The model works by:
+
+1. Estimating overland flooding extents using a simple bathtub model and digital elevation models (DEMs)
+2. Using the overland flooding extent as a starting point for a 1-D model of stormwater infrastructure 
+3. Propogating flooding through the stormwater network based on invert elevations
+
