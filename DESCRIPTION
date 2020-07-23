@@ -2,7 +2,8 @@ Package: bathtub
 Type: Package
 Title: Tools to model inundation of stormwater networks 
 Version: 0.1.0
-Author: person("Adam", "Gold", email = "gold@unc.edu", role = c("aut","cre"))
+Authors@R: person("Adam", "Gold", email = "gold@unc.edu", role = c("aut","cre"),comment = c(ORCID = "0000-0002-0921-0384"))
+authors:  
 Maintainer: Adam Gold <gold@unc.edu>
 Description: bathtub is a set of tools that allows users to model the impacts of 
     inundation on stormwater networks. bathtub does this by combining spatial 

@@ -341,7 +341,7 @@ assemble_net_model <- function(pipes,
     impacted_nodes <- propagate_flood_ts(pipes = pipes_interp, nodes= nodes_interp, structures = structures_new, select_nodes = select_nodes, water_elevation = i)
 
     outlet_id <- outlet_id %>%
-      rbind(impacted_nodes %>% add_column(water_elevation = i))
+      rbind(impacted_nodes %>% dplyr::mutate(water_elevation = i))
 
     pb$tick(1)
     }
