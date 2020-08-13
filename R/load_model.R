@@ -20,6 +20,9 @@ load_model <- function(workspace){
                         dplyr::ungroup(),
                       structures = bathtub::load_w_units(paste0(workspace,"/model/structures.gpkg")))
 
+    info <- read.csv(paste0(workspace,"/model/model_info.csv"))
+    colnames(info) <- c("parameters","values")
+    print(info)
   }
 
   if(pipes_exist == F | nodes_exist == F | structures_exist == F){

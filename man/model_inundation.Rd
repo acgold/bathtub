@@ -13,11 +13,11 @@ model_inundation(
   from_elevation = -3,
   to_elevation = 3,
   step = 0.5,
+  model_ponding = F,
   minimum_area = 0.6,
   minimum_area_units = "km^2",
   min_elev_cutoff = -5,
   use_outlets = T,
-  model_ponding = T,
   site_name,
   workspace,
   overwrite = T
@@ -42,6 +42,8 @@ modeling flooding (Optional)}
 \item{step}{Step of sequence between \code{from_elevation} and \code{to_elevation}.
 Units same as model inverts}
 
+\item{model_ponding}{Model overland ponding from structure surcharge? Default F}
+
 \item{minimum_area}{Minimum area of flooded area to keep}
 
 \item{minimum_area_units}{Units of flooded area}
@@ -50,8 +52,6 @@ Units same as model inverts}
 
 \item{use_outlets}{Force outlets to be connected by receiving waters
 (i.e., contiguous flooded area > min_elev_cutoff)}
-
-\item{model_ponding}{Model surface ponding from structure surcharge?}
 
 \item{site_name}{Name of site}
 

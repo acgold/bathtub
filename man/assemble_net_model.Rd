@@ -21,19 +21,20 @@ assemble_net_model(
   obstruction_keywords = NULL,
   obstruction_percent = F,
   overwrite = T,
+  site_name,
   workspace
 )
 }
 \arguments{
 \item{pipes}{A \code{sf} object denoting stormwater pipes. Result of \code{setup_pipes}}
 
-\item{structures}{A \code{sf} object denoting stormwater structures Result of \code{setup_structures}}
+\item{structures}{A \code{sf} object denoting stormwater structures. Result of \code{setup_structures}}
 
 \item{type}{Type of invert survey data. 'depth', 'elevation', or 'none'}
 
 \item{use_raster_elevation}{Extract elevation and use as surface elevations?}
 
-\item{elev}{\code{RasterLayer} DEM object for inundation modeling.Result of \code{DEM_setup}}
+\item{elev}{\code{RasterLayer} DEM object for inundation modeling. Result of \code{DEM_setup}}
 
 \item{elev_units}{Units of \code{elev} values}
 

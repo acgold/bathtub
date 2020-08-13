@@ -1,10 +1,10 @@
 #' Assemble bathtub inundation model
 #'
 #' @param pipes A \code{sf} object denoting stormwater pipes. Result of \code{setup_pipes}
-#' @param structures A \code{sf} object denoting stormwater structures Result of \code{setup_structures}
+#' @param structures A \code{sf} object denoting stormwater structures. Result of \code{setup_structures}
 #' @param type Type of invert survey data. 'depth', 'elevation', or 'none'
 #' @param use_raster_elevation Extract elevation and use as surface elevations?
-#' @param elev \code{RasterLayer} DEM object for inundation modeling.Result of \code{DEM_setup}
+#' @param elev \code{RasterLayer} DEM object for inundation modeling. Result of \code{DEM_setup}
 #' @param elev_units Units of \code{elev} values
 #' @param min_elev_cutoff Minimum cutoff for elevation values
 #' @param buffer Size of buffer for connecting structures to pipes
@@ -54,6 +54,7 @@ assemble_net_model <- function(pipes,
                                    obstruction_keywords = NULL,
                                    obstruction_percent = F,
                                   overwrite = T,
+                               site_name,
                                workspace
 ) {
   units::units_options(set_units_mode = "standard")
@@ -374,9 +375,32 @@ assemble_net_model <- function(pipes,
     obstruction_percent = obstruction_percent
   )
 
+  # Create info tibble
+ info_tibble <- data.frame(
+  "model_created" = Sys.time(),
+  "site_name" = site_name,
+  "type" = type,
+  "use_raster_elevation" =  use_raster_elevation,
+  "elev" =  names(elev),
+  "elev_units" = elev_units,
+  "min_elev_cutoff" =  min_elev_cutoff,
+  "buffer" = buffer,
+  "interp_rnds" =  interp_rnds,
+  "guess_connectivity" =  guess_connectivity,
+  "up_condition" =  ifelse(is.null(up_condition),NA,up_condition),
+  "dn_condition" =  ifelse(is.null(dn_condition),NA,dn_condition),
+  "structure_condition" = ifelse(is.null(structure_condition),NA,structure_condition),
+  "obstruction_keywords" = ifelse(is.null(obstruction_keywords),NA,obstruction_keywords),
+  "obstruction_percent" =  obstruction_percent
+  ) %>%
+   t() %>%
+   as.data.frame()
 
-  if(overwrite == T){
+ colnames(info_tibble) <- "parameters"
+
+ if(overwrite == T){
   # Write model to bathtub output folder
+    write.csv(info_tibble, paste0(workspace,"/model/model_info.csv"))
     bathtub::save_w_units(x = with_obstructions[[1]], full_path = paste0(workspace,"/model/pipes.gpkg"))
     bathtub::save_w_units(x = with_obstructions[[2]] %>%
                             dplyr::group_by(edgeID, start_end, nodeID, elev, inv_elev, structureID, s_inv_elev, min_inv_elev, interp) %>%

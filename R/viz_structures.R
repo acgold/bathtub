@@ -38,14 +38,28 @@ viz_structures <- function(model_output,
 
   if(type == "plot" & is.null(overlay)){
     plot_data <- total_impacted_structures %>%
-      dplyr::mutate(binned_perc = forcats::fct_explicit_na(cut(structure_perc_fill , breaks = c(0,20,40,60,80,99,100), include.lowest = T, right = T))) %>%
+      dplyr::mutate(binned_perc = factor(forcats::fct_explicit_na(cut(structure_perc_fill , breaks = c(0,20,40,60,80,99,100), include.lowest = T, right = T)),
+                                         levels = c("(Missing)",
+                                                    "[0,20]",
+                                                    "(20,40]",
+                                                    "(40,60]",
+                                                    "(60,80]",
+                                                    "(80,99]",
+                                                    "(99,100]"))) %>%
       dplyr::group_by(water_elevation, binned_perc) %>%
       dplyr::summarise(n_perc = n()/n_struc) %>%
       dplyr::filter(!is.na(water_elevation)) %>%
       dplyr::ungroup()
 
     agg_data <- total_impacted_structures %>%
-      dplyr::mutate(binned_perc = forcats::fct_explicit_na(cut(structure_perc_fill , breaks = c(0,20,40,60,80,99,100), include.lowest = T, right = T))) %>%
+      dplyr::mutate(binned_perc = factor(forcats::fct_explicit_na(cut(structure_perc_fill , breaks = c(0,20,40,60,80,99,100), include.lowest = T, right = T)),
+                                         levels = c("(Missing)",
+                                                    "[0,20]",
+                                                    "(20,40]",
+                                                    "(40,60]",
+                                                    "(60,80]",
+                                                    "(80,99]",
+                                                    "(99,100]"))) %>%
       dplyr::group_by(water_elevation) %>%
       dplyr::summarise(n_perc = n()/n_struc) %>%
       dplyr::filter(!is.na(water_elevation)) %>%
@@ -95,9 +109,10 @@ viz_structures <- function(model_output,
       xlab(paste0("MHHW (",units(total_impacted_structures$s_inv_elev)$numerator,")"))+
       theme_bw()+
       theme(legend.background = element_blank(),
-            legend.key = element_blank())+
+            legend.key = element_blank(),
+            text = element_text(family = "Times New Roman"))+
       guides(fill = F)+
-      theme(legend.position = c(.3,.9))+
+      theme(legend.position = "none")+
       theme(...)
 
 
@@ -117,9 +132,10 @@ viz_structures <- function(model_output,
       ylab("Relative amount")+
       xlab(paste0("MHHW (",units(total_impacted_structures$s_inv_elev)$numerator,")"))+
       theme_bw()+
+      theme(text = element_text(family = "Times New Roman"))+
       theme(...)
 
-    impact_plot <- cowplot::plot_grid(impacted_struc_total, impacted_struc_ratio)
+    impact_plot <- impacted_struc_total + impacted_struc_ratio
 
     if(!is.null(filename)){
       ggplot2::ggsave(filename = filename, plot = impact_plot, path = paste0(workspace,"/figures/"),

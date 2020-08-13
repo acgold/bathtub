@@ -14,7 +14,7 @@ add_obstructions <- function(pipes,
 
     nodes <- nodes %>%
       tibble::as_tibble() %>%
-      dplyr::left_join(pipes %>%  tibble::as_tibble() %>% dlyr::ungroup() %>% dplyr::select(from,blocked_up), by = c("nodeID" = "from")) %>%
+      dplyr::left_join(pipes %>%  tibble::as_tibble() %>% dplyr::ungroup() %>% dplyr::select(from,blocked_up), by = c("nodeID" = "from")) %>%
       dplyr::left_join(pipes %>%  tibble::as_tibble() %>% dplyr::ungroup() %>% dplyr::select(to,blocked_dn), by = c("nodeID" = "to")) %>%
       dplyr::mutate(blocked_up = tidyr::replace_na(blocked_up, F),
              blocked_dn = tidyr::replace_na(blocked_dn, F),

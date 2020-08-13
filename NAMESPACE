@@ -1,4 +1,5 @@
 exportPattern("^[[:alpha:]]+")
 import(data.table)
 import(foreach)
+import(patchwork)
 

@@ -19,6 +19,10 @@ load_results <- function(workspace){
                     np_structures = bathtub::load_w_units(paste0(workspace,"/results/np_struc.gpkg")),
                     flooding = bathtub::load_w_units(paste0(workspace,"/results/flooding_extent.gpkg")))
 
+  info <- read.csv(paste0(workspace,"/results/results_info.csv"))
+  colnames(info) <- c("parameters","values")
+  print(info)
+
   if(file.exists(paste0(workspace,"/results/ponding_extent.gpkg"))){
     model_results$ponding <- bathtub::load_w_units(paste0(workspace,"/results/ponding_extent.gpkg"))
   }

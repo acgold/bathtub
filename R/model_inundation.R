@@ -10,12 +10,12 @@
 #' @param to_elevation Upper bound of elevation for modeling. Units same as model inverts
 #' @param step Step of sequence between \code{from_elevation} and \code{to_elevation}.
 #' Units same as model inverts
+#' @param model_ponding Model overland ponding from structure surcharge? Default F
 #' @param minimum_area Minimum area of flooded area to keep
 #' @param minimum_area_units Units of flooded area
 #' @param min_elev_cutoff Minimum cutoff for elevation values
 #' @param use_outlets Force outlets to be connected by receiving waters
 #' (i.e., contiguous flooded area > min_elev_cutoff)
-#' @param model_ponding Model surface ponding from structure surcharge?
 #' @param site_name Name of site
 #' @param workspace Path to bathtub folder
 #'
@@ -48,20 +48,20 @@ model_inundation <- function(model,
                              from_elevation = -3,
                              to_elevation = 3,
                              step = 0.5,
+                             model_ponding = F,
                              minimum_area = 0.6,
                              minimum_area_units = "km^2",
                              min_elev_cutoff = -5,
                              use_outlets = T,
-                             model_ponding = T,
                              site_name,
                              workspace,
                              overwrite = T){
 
   units::units_options(set_units_mode = "standard")
 
-  pipes = model[[1]]
-  nodes = model[[2]]
-  structures = model[[3]]
+  pipes <- model$pipes
+  nodes <- model$nodes
+  structures <- model$structures
 
   conv_fac <- 1 / units::drop_units(units::set_units(units::set_units(1, elev_units), units(pipes$from_inv_elev)$numerator))
 
@@ -83,10 +83,31 @@ model_inundation <- function(model,
   total_impacted_pipes <- NULL
   total_flooding <- NULL
 
+  # Create info tibble
+  info_tibble <- data.frame(
+    "model_run" = Sys.time(),
+    "site_name" = site_name,
+    "overlay" = ifelse(is.null(overlay),NA,names(overlay)),
+    "overlay_quantile" = overlay_quantile,
+    "elev_units" = elev_units,
+    "from_elevation" = from_elevation,
+    "to_elevation" = to_elevation,
+    "step" = step,
+    "minimum_area" = units::drop_units(minimum_area),
+    "minimum_area_units" = minimum_area_units,
+    "min_elev_cutoff" =  min_elev_cutoff,
+    "use_outlets" = use_outlets
+  ) %>%
+    t() %>%
+    as.data.frame()
+
+  colnames(info_tibble) <- "parameters"
+
+
   if(is.null(overlay)){
     cat("Using provided DEM and water level scenarios to estimate flooding extent...\n")
 
-    elev_seq = units::set_units(seq(from = from_elevation, to = to_elevation, by = step), value = units(pipes$from_inv_elev)$numerator)
+    elev_seq <-  units::set_units(seq(from = from_elevation, to = to_elevation, by = step), value = units(pipes$from_inv_elev)$numerator)
 
     pb <- progress::progress_bar$new(format = " Running the 1-D model [:bar] :current/:total (:percent)", total = length(elev_seq))
 
@@ -157,11 +178,9 @@ model_inundation <- function(model,
     }
 
     if(model_ponding == T){
-      cat("")
 
       ponding_shps <- NULL
-
-      pb <- progress::progress_bar$new(format = " Modeling ponding from structure overflow [:bar] :current/:total (:percent)", total = length(total_impacted_structures %>% pull(water_elevation) %>% unique()))
+      pb <- progress::progress_bar$new(format = " Modeling ponding from structure overflow [:bar] :current/:total (:percent)", total = length(elev_seq))
 
       for(i in elev_seq){
         ponded_structures <- total_impacted_structures %>%
@@ -169,48 +188,60 @@ model_inundation <- function(model,
                  structure_surcharge > units::set_units(0, units(total_impacted_structures$structure_surcharge)$numerator))
 
         if(nrow(ponded_structures) > 0){
-            select_rast_ponding <- raster::calc(
-              DEM_adjusted,
-              fun = function(x) {
-                x < i
-              }
-            )
-            select_rast_ponding[select_rast_ponding == 0] <- NA
-
-            select_rast_stars <- stars::st_as_stars(select_rast_ponding, crs = sf::st_crs(select_rast_ponding))
-
-            select_rast_sf <- sf::st_as_sf(select_rast_stars,
-                                           as_points = FALSE,
-                                           merge = T,
-                                           connect8 = T)
-
-            filtered_pond_shps <- select_rast_sf %>%
-              sf::st_join(ponded_structures %>% st_buffer(dist=(raster::res(select_rast_ponding)[1]/2)+raster::res(select_rast_ponding)[1]/20)) %>%
-              dplyr::filter(!is.na(structureID)) %>%
-              # sf::st_cast("MULTIPOLYGON")
-              sf::st_union() %>%
-              st_as_sf()
-
-            other_flooding <- total_flooding %>%
-              filter(water_elevation == units::set_units(i, units(total_flooding$water_elevation)$numerator)) %>%
-              sf::st_union() %>%
-              st_as_sf()
-
-            if(nrow(sf::st_difference(filtered_pond_shps,other_flooding))>0){
-
-              filtered_pond_shps <- filtered_pond_shps %>%
-                sf::st_difference(other_flooding) %>%
-                mutate(water_elevation = i)
-
-              ponding_shps <- rbind(ponding_shps, filtered_pond_shps)
+          select_rast_ponding <- raster::calc(
+            DEM_adjusted,
+            fun = function(x) {
+              x < i
             }
+          )
+          select_rast_ponding[select_rast_ponding == 0] <- NA
 
-            rm(filtered_pond_shps)
+          select_rast_stars <- stars::st_as_stars(select_rast_ponding, crs = sf::st_crs(select_rast_ponding))
+
+          select_rast_sf <- sf::st_as_sf(select_rast_stars,
+                                         as_points = FALSE,
+                                         merge = T,
+                                         connect8 = T) %>%
+            mutate(area = sf::st_area(.)) %>%
+            filter(area < minimum_area) %>%
+            sf::st_transform(crs = sf::st_crs(ponded_structures))
+
+          filtered_pond_shps <- select_rast_sf %>%
+            sf::st_join(ponded_structures %>% st_buffer(dist=(raster::res(select_rast_ponding)[1]/2)+raster::res(select_rast_ponding)[1]/20)) %>%
+            dplyr::filter(!is.na(structureID)) %>%
+            # sf::st_cast("MULTIPOLYGON")
+            sf::st_union() %>%
+            st_as_sf()
+
+          # other_flooding <- total_flooding %>%
+          #   filter(water_elevation == units::set_units(i, units(total_flooding$water_elevation)$numerator)) %>%
+          #   sf::st_union() %>%
+          #   st_as_sf()
+
+          if(nrow(filtered_pond_shps)>0){
+
+            filtered_pond_shps <- filtered_pond_shps %>%
+              mutate(water_elevation = i) %>%
+              st_cast("POLYGON", warn = F)
+
+            ponding_shps <- rbind(ponding_shps, filtered_pond_shps)
+          }
+
+          rm(filtered_pond_shps)
 
         }
         pb$tick(1)
       }
 
+      writeRaster(x = fasterize::fasterize(sf = ponding_shps, raster = DEM_adjusted, field = "water_elevation",fun = "min"),
+                  filename = paste0(workspace, "/results/ponding_extent.tif"),
+                  overwrite = T)
+
+      writeRaster(x = fasterize::fasterize(sf = total_flooding %>% units::drop_units(), raster = DEM_adjusted, field = "water_elevation",fun = "min"),
+                  filename = paste0(workspace, "/results/flooding_extent.tif"),
+                  overwrite = T)
+
+      write.csv(info_tibble, paste0(workspace,"/results/results_info.csv"))
       bathtub::save_w_units(x = ponding_shps, full_path = paste0(workspace, "/results/ponding_extent.gpkg"), overwrite = overwrite)
       bathtub::save_w_units(x = total_impacted_nodes, full_path = paste0(workspace, "/results/imp_nodes.gpkg"), overwrite = overwrite)
       bathtub::save_w_units(x = total_np_nodes, full_path = paste0(workspace, "/results/np_nodes.gpkg"), overwrite = overwrite)
@@ -229,6 +260,11 @@ model_inundation <- function(model,
 
     }
 
+    writeRaster(x = fasterize::fasterize(sf = total_flooding %>% units::drop_units(), raster = DEM_adjusted, field = "water_elevation",fun = "min"),
+                filename = paste0(workspace, "/results/flooding_extent.tif"),
+                overwrite = T)
+
+    write.csv(info_tibble, paste0(workspace,"/results/results_info.csv"))
     bathtub::save_w_units(x = total_impacted_nodes, full_path = paste0(workspace, "/results/imp_nodes.gpkg"), overwrite = overwrite)
     bathtub::save_w_units(x = total_np_nodes, full_path = paste0(workspace, "/results/np_nodes.gpkg"), overwrite = overwrite)
     bathtub::save_w_units(x = total_impacted_structures, full_path = paste0(workspace, "/results/imp_struc.gpkg"), overwrite = overwrite)
@@ -308,6 +344,7 @@ model_inundation <- function(model,
     total_impacted_pipes <- rbind(total_impacted_pipes, impacted_pipes %>% tibble::add_column(water_elevation = select_elev))
     total_flooding <- rbind(total_flooding, select_rast_sf %>% tibble::add_column(water_elevation = select_elev))
 
+    write.csv(info_tibble, paste0(workspace,"/results/results_info.csv"))
     bathtub::save_w_units(x = total_impacted_nodes, full_path = paste0(workspace, "/results/imp_nodes.gpkg"), overwrite = overwrite)
     bathtub::save_w_units(x = total_np_nodes, full_path = paste0(workspace, "/results/np_nodes.gpkg"), overwrite = overwrite)
     bathtub::save_w_units(x = total_impacted_structures, full_path = paste0(workspace, "/results/imp_struc.gpkg"), overwrite = overwrite)
