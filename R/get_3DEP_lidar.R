@@ -1,8 +1,15 @@
-get_3DEP_lidar <- function(x, lidar_proj4 = NULL, view = T, workspace){
+get_3DEP_lidar <- function(x, res = 1, res_units = "m", lidar_proj4 = NULL, view = T, workspace){
+  units::units_options(set_units_mode = "standard")
+
+  crs_info <- sf::st_crs(x, parameters = T)
 
   if(is.null(lidar_proj4)){
-    lidar_proj4 <- "+proj=lcc +lat_0=33.75 +lon_0=-79 +lat_1=34.3333333333333 +lat_2=36.1666666666667 +x_0=609601.220000001 +y_0=0 +datum=NAD83 +units=us-ft +no_defs"
+    lidar_proj4 <- crs_info$proj4string
   }
+
+  res_units_conv <- round(units::drop_units((units::set_units(1, res_units))/(units::set_units(1, crs_info$ud_unit))), digits = 5)
+
+  res_conv = res * res_units_conv
 
   pipe_bbox <- x %>%
     sf::st_transform(crs = 4269) %>%
@@ -81,14 +88,16 @@ get_3DEP_lidar <- function(x, lidar_proj4 = NULL, view = T, workspace){
     stop("All tiles have been excluded. Exclude fewer tiles")
   }
 
-  temp <- base::tempfile()
-  tempd <- base::tempdir()
-  keep_data <- list()
+  # tempd <- base::tempdir()
+  # keep_data <- list()
   test_dir <- paste0(workspace,"/lidar")
   for(i in 1:length(tib$downloadURL)){
-    utils::download.file(tib$downloadURL[i],temp, mode = "wb")
+    temp <- base::tempfile()
+
+    utils::download.file(tib$downloadURL[i], temp, mode = "wb")
     # utils::unzip(temp, exdir=tempd)
-    utils::unzip(temp, exdir=test_dir,overwrite = TRUE)
+    cat("Unzipping .las file to:",test_dir)
+    utils::unzip(temp, exdir=test_dir, overwrite = TRUE)
 
     # las_file <- lidR::readLAS(file.path(test_dir,base::paste0(tools::file_path_sans_ext(base::basename(tib$downloadURL[i])),".las")))
     # lidR::epsg(las_file) <- lidar_EPSG
@@ -108,12 +117,12 @@ get_3DEP_lidar <- function(x, lidar_proj4 = NULL, view = T, workspace){
   lidar_extract <- lidR::lasclip(data,pipe_extent)
 
   cat("Creating DEM using nearest neighbor interpolation...\n")
-  lidar_DEM <- lidR::grid_terrain(lidar_extract, algorithm = lidR::knnidw())
+  lidar_DEM <- lidR::grid_terrain(lidar_extract, res = res_conv, algorithm = lidR::knnidw(), keep_lowest = T)
   raster::crs(lidar_DEM) <- lidar_proj4
 
   cat("Writing DEM to:\n", paste0(test_dir,"/","lidar_DEM.tif"))
   raster::writeRaster(lidar_DEM, filename = paste0(test_dir,"/","lidar_DEM.tif"), overwrite = T)
   rm(lidar_DEM)
-  lidar_DEM <- raster::raster(paste0(test_dir,"/","lidar_DEM.tif"))
+  lidar_DEM <- terra::rast(paste0(test_dir,"/","lidar_DEM.tif"))
   return(lidar_DEM)
 }

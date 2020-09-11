@@ -14,6 +14,7 @@ assemble_net_model(
   min_elev_cutoff = -5,
   buffer = 0.5,
   interp_rnds = 5,
+  interp_adjust = 0.1,
   guess_connectivity = T,
   up_condition = NULL,
   dn_condition = NULL,
@@ -43,6 +44,8 @@ assemble_net_model(
 \item{buffer}{Size of buffer for connecting structures to pipes}
 
 \item{interp_rnds}{Rounds of interpolation for missing invert elevations}
+
+\item{interp_adjust}{Elevation value to add to nearby known elevation to estimate unknowns. Default is 0.1}
 
 \item{guess_connectivity}{Assume connectivity of pipes that overlap without nodes?}
 

@@ -15,7 +15,7 @@ RasterLayer:
 }
 }
 \source{
-\url{https://coast.noaa.gov/htdata/Inundation/TidalSurfaces/NOAA_OCM_MHHWInterpolatedSurface.zip}
+\url{https://www.fisheries.noaa.gov/inport/item/48104}
 }
 \usage{
 NAVD88_MHHW_NC

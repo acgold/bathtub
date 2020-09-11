@@ -11,5 +11,5 @@
 #'   \item{value range}{-0.99, 0.7606}
 #'   ...
 #' }
-#' @source \url{https://coast.noaa.gov/htdata/Inundation/TidalSurfaces/NOAA_OCM_MHHWInterpolatedSurface.zip}
+#' @source \url{https://www.fisheries.noaa.gov/inport/item/48104}
 "NAVD88_MHHW_NC"

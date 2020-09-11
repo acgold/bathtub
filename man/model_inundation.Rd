@@ -14,6 +14,9 @@ model_inundation(
   to_elevation = 3,
   step = 0.5,
   model_ponding = F,
+  DEM_RMSE = 0.2,
+  conv_RMSE = 0.1,
+  pipe_RMSE = 0.1,
   minimum_area = 0.6,
   minimum_area_units = "km^2",
   min_elev_cutoff = -5,
@@ -43,6 +46,12 @@ modeling flooding (Optional)}
 Units same as model inverts}
 
 \item{model_ponding}{Model overland ponding from structure surcharge? Default F}
+
+\item{DEM_RMSE}{RMSE of DEM in same units as 'elev_units'. Default is 0.2.}
+
+\item{conv_RMSE}{RMSE of conversion from NAVD88 to MHHW. Default is 0.1 m}
+
+\item{pipe_RMSE}{RMSE of elevation or depth measurements of pipes in same units as model$pipes. Default is 0.1}
 
 \item{minimum_area}{Minimum area of flooded area to keep}
 

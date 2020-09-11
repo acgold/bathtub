@@ -227,6 +227,7 @@ bft_model<- assemble_net_model(
   use_raster_elevation = F,
   buffer = 1,
   guess_connectivity = T,
+  site_name = "beaufort",
   workspace = workspace
 )
 ```
@@ -261,11 +262,11 @@ bft_model_output <- model_inundation(
   elev_units = "m",
   from_elevation = -3,
   to_elevation = 4,
-  step = 3/12,
-  model_ponding = T,
-  site_name = "beaufort",
+  step = 0.25,
   overwrite = T,
-  minimum_area = 0.01,
+  model_ponding = T,
+  minimum_area = 0.1,
+  site_name = "beaufort",
   workspace = workspace
 )
 ```
@@ -280,33 +281,20 @@ Save the plot to `bathtub_output/figures/` by specifying a filename.
 
 ```{r}
 bft_plot <- viz_structures(model_output = bft_model_output,
-                           model = bft_model,
-                           elev = bft_elev,
-                           type_column = "Code",
-                           filter_value = "D_I",
-                           type = "plot",
-                           # hide_labels = T,
-                           # simplify_labels = T,
-                           # label_size = 2,
-                           # filename = "bft_structures_impact_plot.png",
-                           workspace = workspace)
+                            model = bft_model,
+                            elev = bft_elev,
+                            type_column = "Code",
+                            filter_value = "D_I",
+                            type = "plot",
+                            hide_labels = T,
+                            # simplify_labels = T,
+                            # label_size = 2,
+                            # filename = "bft_structures_impact_plot.png",
+                            workspace = workspace,
+                            panel.grid = element_blank())
 
 bft_plot
 ```
-
-### Interactive maps
-
-Visualize the minimum water level of impact for all structures, and click on the points to see a plot of percent fill vs. water level! This can take awhile for large models.
-
-```{r show model, echo = T}
-bft_int_structures_map <- viz_structures(model_output = bft_model_output,
-                          model = bft_model,
-                           elev = bft_elev,
-                           type = "interactive_map",
-                           workspace = workspace)
-bft_int_structures_map
-```
-
 
 ### Use the `mapview` package
 

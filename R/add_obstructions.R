@@ -7,6 +7,10 @@ add_obstructions <- function(pipes,
                              structure_condition = NULL,
                              obstruction_percent = F){
 
+  if((is.null(up_condition) & is.null(up_condition) & is.null(obstruction_keywords) & is.null(structure_condition))){
+    return(list(pipes, nodes, structures))
+  }
+
   if((!is.null(up_condition) | !is.null(dn_condition)) & obstruction_percent == F){
     pipes <- pipes %>%
       dplyr::mutate(blocked_dn = stringr::str_detect(pipes[[dn_condition]], pattern = paste(obstruction_keywords,collapse = '|')),

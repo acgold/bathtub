@@ -3,12 +3,7 @@ interpolate_network <- function(pipes,
                                 rounds = 5,
                                 adjustment = 0.1,
                                 backup_depth = 1.5,
-                                adjustment_units = "ft",
-                                up_condition = NULL,
-                                dn_condition = NULL,
-                                obstruction_keywords = NULL,
-                                structure_condition = NULL,
-                                obstruction_percent = F
+                                adjustment_units = "ft"
 ){
 
   units::units_options(set_units_mode = "standard")

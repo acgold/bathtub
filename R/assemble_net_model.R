@@ -9,6 +9,7 @@
 #' @param min_elev_cutoff Minimum cutoff for elevation values
 #' @param buffer Size of buffer for connecting structures to pipes
 #' @param interp_rnds Rounds of interpolation for missing invert elevations
+#' @param interp_adjust Elevation value to add to nearby known elevation to estimate unknowns. Default is 0.1
 #' @param guess_connectivity Assume connectivity of pipes that overlap without nodes?
 #' @param up_condition Column name of upstream pipe condition. Either text of condition to be
 #' searched with \code{obstruction_keywords} or percent obstructions (\code{obstruction_percent})
@@ -47,6 +48,7 @@ assemble_net_model <- function(pipes,
                                    min_elev_cutoff = -5,
                                    buffer = 0.5,
                                    interp_rnds = 5,
+                               interp_adjust = 0.1,
                                    guess_connectivity = T,
                                    up_condition = NULL ,
                                    dn_condition = NULL ,
@@ -116,7 +118,7 @@ assemble_net_model <- function(pipes,
     start_points_elev <- source_nodes %>%
       sf::st_as_sf(coords = c('X', 'Y')) %>%
       sf::st_set_crs(sf::st_crs(pipes)) %>%
-      dplyr::mutate(start_elev = units::set_units(units::set_units(raster::extract(elev, source_nodes), value = !!elev_units), value = !!invert_units))%>%
+      dplyr::mutate(start_elev = units::set_units(units::set_units(raster::extract(raster::raster(elev), source_nodes), value = !!elev_units), value = !!invert_units))%>%
       dplyr::select(edgeID, start_elev) %>%
       sf::st_buffer(buffer) %>%
       sf::st_join(structures %>% dplyr::select(structureID, s_elev, s_inv_elev)) %>%
@@ -125,7 +127,7 @@ assemble_net_model <- function(pipes,
     end_points_elev <- target_nodes %>%
       sf::st_as_sf(coords = c('X', 'Y')) %>%
       sf::st_set_crs(sf::st_crs(pipes)) %>%
-      dplyr::mutate(end_elev = units::set_units(units::set_units(raster::extract(elev, target_nodes), !!elev_units), value = !!invert_units))%>%
+      dplyr::mutate(end_elev = units::set_units(units::set_units(raster::extract(raster::raster(elev), target_nodes), !!elev_units), value = !!invert_units))%>%
       dplyr::select(edgeID, end_elev) %>%
       sf::st_buffer(buffer) %>%
       sf::st_join(structures %>% dplyr::select(structureID, s_elev, s_inv_elev)) %>%
@@ -274,7 +276,8 @@ assemble_net_model <- function(pipes,
   interp <- bathtub::interpolate_network(
     pipes = pipes_elev,
     nodes = new_nodes,
-    rounds = interp_rnds
+    rounds = interp_rnds,
+    adjustment = interp_adjust
   )
 
   pipes_interp <- interp[[1]] %>% sf::st_as_sf() #%>% sf::st_set_crs(final_crs)
@@ -301,14 +304,10 @@ assemble_net_model <- function(pipes,
   minimum_area <- units::set_units(0.1, "km^2")
   conv_fac <- 1 / units::drop_units(units::set_units(units::set_units(1, elev_units), units(pipes_interp$from_inv_elev)$numerator))
 
-  DEM_adjusted <- raster::calc(
-    elev,
-    fun = function(x) {
-      x / conv_fac
-    }
-  )
+  DEM_adjusted <- elev / conv_fac
 
   DEM_adjusted[DEM_adjusted < min_elev_cutoff] <- min_elev_cutoff
+
   elev_seq = units::set_units(seq(from = from_elevation, to = to_elevation, by = step), value = units(pipes_interp$from_inv_elev)$numerator)
 
   pb <- progress::progress_bar$new(format = " Identifying outlets [:bar] :current/:total (:percent)", total = length(elev_seq))
@@ -316,16 +315,18 @@ assemble_net_model <- function(pipes,
 
   for(i in units::drop_units(elev_seq)){
 
-    select_rast <- raster::calc(
-      DEM_adjusted,
-      fun = function(x) {
-        x < i
-      }
-    )
+    # select_rast <- terra::app(
+    #   DEM_adjusted,
+    #   fun = function(x) {
+    #     x < i
+    #   }
+    # )
+
+    select_rast <- DEM_adjusted < i
 
     select_rast[select_rast == 0] <- NA
 
-    select_rast_stars <- stars::st_as_stars(select_rast)
+    select_rast_stars <- stars::st_as_stars(raster::raster(select_rast))
 
     select_rast_sf <- sf::st_as_sf(select_rast_stars,
                                    as_points = FALSE,
@@ -334,10 +335,12 @@ assemble_net_model <- function(pipes,
       dplyr::mutate(area = sf::st_area(.)) %>%
       dplyr::filter(area > minimum_area)
 
+    colnames(select_rast_sf)[1] <- "Layer_1"
+
     select_nodes <- nodes_interp %>%
       sf::st_join(select_rast_sf %>% sf::st_transform(sf::st_crs(nodes))) %>%
-      dplyr::filter(!is.na(layer)) %>%
-      dplyr::select(-c(layer,area))
+      dplyr::filter(!is.na(Layer_1)) %>%
+      dplyr::select(-c(Layer_1,area))
 
     impacted_nodes <- propagate_flood_ts(pipes = pipes_interp, nodes= nodes_interp, structures = structures_new, select_nodes = select_nodes, water_elevation = i)
 
@@ -362,7 +365,6 @@ assemble_net_model <- function(pipes,
     tidyr::replace_na(list(outlet = F)) %>%
     dplyr::ungroup() %>%
     st_as_sf()
-
 
   with_obstructions <- bathtub::add_obstructions(
     pipes = pipes_interp,

@@ -10,7 +10,7 @@ DEM_setup(
   large_DEM,
   elev_units = "m",
   conversion_raster,
-  res = 9.81,
+  res,
   trace_upstream = F,
   trace_buffer = 1.5,
   extent_buffer = 1000,
