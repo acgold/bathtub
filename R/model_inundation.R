@@ -132,13 +132,14 @@ model_inundation <- function(model,
 
   if(is.null(overlay)){
     cat("Using provided DEM and water level scenarios to estimate flooding extent...\n")
-    pb$tick(0)
 
     elev_seq <-  units::set_units(seq(from = from_elevation, to = to_elevation, by = step), value = units(pipes$from_inv_elev)$numerator)
 
     pb <- progress::progress_bar$new(format = " Running the 1-D model [:bar] :current/:total (:percent)", total = length(elev_seq))
+    pb$tick(0)
 
     for(i in elev_seq){
+
       surface_error_no_units <- units::drop_units(surface_error)
 
       DEM_error_rast <- terra::app(DEM_adjusted,

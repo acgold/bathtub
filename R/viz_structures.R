@@ -39,17 +39,21 @@ viz_structures <- function(model_output,
   if(type == "plot" & is.null(overlay)){
     plot_data <- total_impacted_structures %>%
       dplyr::mutate(binned_perc = factor(forcats::fct_explicit_na(cut(structure_perc_fill , breaks = c(0,20,40,60,80,99,100), include.lowest = T, right = T)),
-                                         levels = c("(Missing)",
+                                         levels = c("Low confidence",
+                                                    "(Missing)",
                                                     "[0,20]",
                                                     "(20,40]",
                                                     "(40,60]",
                                                     "(60,80]",
                                                     "(80,99]",
-                                                    "(99,100]"))) %>%
-      dplyr::group_by(water_elevation, binned_perc) %>%
+                                                    "(99,100]")),
+                    confidence_class = factor(confidence_class, levels = c("Low","High"))) %>%
+      dplyr::group_by(water_elevation, binned_perc, confidence_class) %>%
       dplyr::summarise(n_perc = n()/n_struc) %>%
       dplyr::filter(!is.na(water_elevation)) %>%
       dplyr::ungroup()
+
+    plot_data$binned_perc[plot_data$confidence_class == "Low"] <- "Low confidence"
 
     agg_data <- total_impacted_structures %>%
       dplyr::mutate(binned_perc = factor(forcats::fct_explicit_na(cut(structure_perc_fill , breaks = c(0,20,40,60,80,99,100), include.lowest = T, right = T)),
@@ -65,13 +69,30 @@ viz_structures <- function(model_output,
       dplyr::filter(!is.na(water_elevation)) %>%
       dplyr::ungroup()
 
+    confidence_plot_data <- total_impacted_structures %>%
+      dplyr::mutate(confidence_class = factor(confidence_class, levels = c("Low","High"))) %>%
+      dplyr::mutate(binned_perc = factor(forcats::fct_explicit_na(cut(structure_perc_fill , breaks = c(0,20,40,60,80,99,100), include.lowest = T, right = T)),
+                                         levels = c("(Missing)",
+                                                    "[0,20]",
+                                                    "(20,40]",
+                                                    "(40,60]",
+                                                    "(60,80]",
+                                                    "(80,99]",
+                                                    "(99,100]")),
+                    confidence_class = factor(confidence_class, levels = c("Low","High"))) %>%
+      dplyr::group_by(water_elevation, binned_perc, confidence_class) %>%
+      dplyr::summarise(n_perc = n()/n_struc) %>%
+      dplyr::filter(!is.na(water_elevation)) %>%
+      dplyr::ungroup()
+
     cols <- c("[0,20]" = "#440154FF",
               "(20,40]" = "#414487FF",
               "(40,60]" = "#2A788EFF",
               "(60,80]" = "#22A884FF",
               "(80,99]" = "#7AD151FF",
               "(99,100]" = "#FDE725FF",
-              "(Missing)" = "dark grey")
+              "(Missing)" = "black",
+              "Low confidence" = "dark grey")
 
     label_data <- total_impacted_structures %>%
       dplyr::group_by(water_elevation) %>%
@@ -105,6 +126,8 @@ viz_structures <- function(model_output,
       scale_x_continuous(breaks= scales::pretty_breaks())+
       scale_y_continuous(breaks= scales::pretty_breaks(), limits = c(NA, max(agg_data$n_perc)*103))+
       scale_color_manual(values = c("black"), name = "",labels = "No Pipes")+
+      scale_alpha_manual(values = c(0.4,1))+
+      # scale_color_manual(values = c("black","grey","black"), name = "",labels = "No Pipes")+
       ylab("Impacted inlets (% of total)")+
       xlab(paste0("MHHW (",units(total_impacted_structures$s_inv_elev)$numerator,")"))+
       theme_bw()+
@@ -134,6 +157,74 @@ viz_structures <- function(model_output,
       theme_bw()+
       theme(text = element_text(family = "Times New Roman"))+
       theme(...)
+
+    # confidence_low <- ggplot2::ggplot(data = confidence_plot_data %>% units::drop_units() %>%
+    #                                     filter(confidence_class == "Low"))+
+    #   geom_col(aes(x=water_elevation, y = n_perc*100, fill = binned_perc), position = "stack")+
+    #   # ggrepel::geom_text_repel(data = label_data %>% units::drop_units(),
+    #   #                          aes(x = water_elevation, y = n_perc * 100, label = label),
+    #   #                          vjust = -.5, size = label_size, color = "grey20", direction = "y", box.padding = 0)+
+    #   geom_line(data = total_np_structures %>%
+    #               dplyr::mutate(binned_perc =  forcats::fct_explicit_na(cut(structure_perc_fill , breaks = c(0,20,40,60,80,99,100), include.lowest = T, right = T))) %>%
+    #               dplyr::group_by(water_elevation) %>%
+    #               dplyr::summarise(n_perc = n()/n_struc) %>%
+    #               dplyr::filter(!is.na(water_elevation)) %>%
+    #               units::drop_units(), aes(x=water_elevation, y = n_perc*100,color = "No Pipes"))+
+    #   geom_point(data = total_np_structures %>%
+    #                dplyr::mutate(binned_perc =  forcats::fct_explicit_na(cut(structure_perc_fill , breaks = c(0,20,40,60,80,99,100), include.lowest = T, right = T))) %>%
+    #                dplyr::group_by(water_elevation) %>%
+    #                dplyr::summarise(n_perc = n()/n_struc) %>%
+    #                dplyr::filter(!is.na(water_elevation)) %>%
+    #                units::drop_units(), aes(x=water_elevation, y = n_perc*100,color = "No Pipes"))+
+    #   scale_fill_manual(values = cols)+
+    #   scale_x_continuous(breaks= scales::pretty_breaks())+
+    #   scale_y_continuous(breaks= scales::pretty_breaks(), limits = c(NA, max(agg_data$n_perc)*103))+
+    #   scale_color_manual(values = c("black"), name = "",labels = "No Pipes")+
+    #   ylab(" ")+
+    #   xlab(paste0("MHHW (",units(total_impacted_structures$s_inv_elev)$numerator,")"))+
+    #   theme_bw()+
+    #   theme(legend.background = element_blank(),
+    #         legend.key = element_blank(),
+    #         text = element_text(family = "Times New Roman"),
+    #         legend.position = "none")+
+    #   guides(fill=F)+
+    #   ggtitle("Low confidence")+
+    #   theme(...)
+
+    # confidence_high <- ggplot2::ggplot(data = confidence_plot_data %>% units::drop_units() %>%
+    #                                     filter(confidence_class == "High"))+
+    #   geom_col(aes(x=water_elevation, y = n_perc*100, fill = binned_perc), position = "stack")+
+    #   # ggrepel::geom_text_repel(data = label_data %>% units::drop_units(),
+    #   #                          aes(x = water_elevation, y = n_perc * 100, label = label),
+    #   #                          vjust = -.5, size = label_size, color = "grey20", direction = "y", box.padding = 0)+
+    # geom_line(data = total_np_structures %>%
+    #             dplyr::mutate(binned_perc =  forcats::fct_explicit_na(cut(structure_perc_fill , breaks = c(0,20,40,60,80,99,100), include.lowest = T, right = T))) %>%
+    #             dplyr::group_by(water_elevation) %>%
+    #             dplyr::summarise(n_perc = n()/n_struc) %>%
+    #             dplyr::filter(!is.na(water_elevation)) %>%
+    #             units::drop_units(), aes(x=water_elevation, y = n_perc*100,color = "No Pipes"))+
+    # geom_point(data = total_np_structures %>%
+    #              dplyr::mutate(binned_perc =  forcats::fct_explicit_na(cut(structure_perc_fill , breaks = c(0,20,40,60,80,99,100), include.lowest = T, right = T))) %>%
+    #              dplyr::group_by(water_elevation) %>%
+    #              dplyr::summarise(n_perc = n()/n_struc) %>%
+    #              dplyr::filter(!is.na(water_elevation)) %>%
+    #              units::drop_units(), aes(x=water_elevation, y = n_perc*100,color = "No Pipes"))+
+    # scale_fill_manual(values = cols)+
+    #   scale_x_continuous(breaks= scales::pretty_breaks())+
+    #   scale_y_continuous(breaks= scales::pretty_breaks(), limits = c(NA, max(agg_data$n_perc)*103))+
+    #   scale_color_manual(values = c("black"), name = "",labels = "No Pipes")+
+    #   ylab(" ")+
+    #   xlab(paste0("MHHW (",units(total_impacted_structures$s_inv_elev)$numerator,")"))+
+    #   theme_bw()+
+    #   theme(legend.background = element_blank(),
+    #         legend.key = element_blank(),
+    #         text = element_text(family = "Times New Roman"),
+    #         legend.position = "none")+
+    #   guides(fill=F)+
+    #   ggtitle("High confidence")
+    #   theme(...)
+    #
+    # confidence <- confidence_low / confidence_high
 
     impact_plot <- impacted_struc_total + impacted_struc_ratio
 
