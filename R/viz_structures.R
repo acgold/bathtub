@@ -7,6 +7,8 @@ viz_structures <- function(model_output,
                            hide_labels = F,
                            simplify_labels = T,
                            label_size = 2,
+                           xmin = -3,
+                           xmax = 4,
                            filename = NULL,
                            workspace,
                            ...){
@@ -30,9 +32,9 @@ viz_structures <- function(model_output,
   }
 
   if(!is.null(filter_value) & !is.null(type_column)){
-    n_struc = nrow(model$structures %>% dplyr::filter(stringr::str_detect(!!sym(type_column), filter_value)) %>% dplyr::filter(structureID %in% unique(model$nodes %>% dplyr::pull(structureID))))
-    total_impacted_structures <- total_impacted_structures %>% dplyr::filter(stringr::str_detect(!!sym(type_column), filter_value)) %>% dplyr::filter(structureID %in% unique(model_output$nodes %>% dplyr::pull(structureID)))
-    total_np_structures <- total_np_structures %>% dplyr::filter(stringr::str_detect(!!sym(type_column), filter_value)) %>% dplyr::filter(structureID %in% unique(model_output$nodes %>% dplyr::pull(structureID)))
+    n_struc = nrow(model$structures %>% dplyr::filter(!!sym(type_column) %in% filter_value) %>% dplyr::filter(structureID %in% unique(model$nodes %>% dplyr::pull(structureID))))
+    total_impacted_structures <- total_impacted_structures %>% dplyr::filter(!!sym(type_column) %in% filter_value) %>% dplyr::filter(structureID %in% unique(model_output$nodes %>% dplyr::pull(structureID)))
+    total_np_structures <- total_np_structures %>% dplyr::filter(!!sym(type_column) %in% filter_value) %>% dplyr::filter(structureID %in% unique(model_output$nodes %>% dplyr::pull(structureID)))
 
   }
 
@@ -123,7 +125,7 @@ viz_structures <- function(model_output,
                    dplyr::filter(!is.na(water_elevation)) %>%
                    units::drop_units(), aes(x=water_elevation, y = n_perc*100,color = "No Pipes"))+
       scale_fill_manual(values = cols)+
-      scale_x_continuous(breaks= scales::pretty_breaks())+
+      scale_x_continuous(breaks= scales::pretty_breaks(), limits = c(xmin, xmax))+
       scale_y_continuous(breaks= scales::pretty_breaks(), limits = c(NA, max(agg_data$n_perc)*103))+
       scale_color_manual(values = c("black"), name = "",labels = "No Pipes")+
       scale_alpha_manual(values = c(0.4,1))+
@@ -139,23 +141,25 @@ viz_structures <- function(model_output,
       theme(...)
 
 
-    impacted_struc_ratio <- total_impacted_structures %>%
-      dplyr::mutate(binned_perc = forcats::fct_explicit_na(cut(structure_perc_fill , breaks = c(0,20,40,60,80,99,100), include.lowest = T, right = T))) %>%
-      dplyr::group_by(water_elevation, binned_perc) %>%
-      dplyr::summarise(n_perc = n()/n_struc) %>%
-      dplyr::filter(!is.na(water_elevation)) %>%
+    impacted_struc_ratio <- plot_data %>%
       ungroup() %>%
       units::drop_units() %>%
       ggplot()+
       geom_col(aes(x=water_elevation, y = n_perc*100, fill = binned_perc), position = "fill")+
       coord_cartesian(ylim=c(0,1))+
-      scale_fill_manual(values = cols,name = "Structure \nvolume \nfilled (%)", limits = names(cols), labels = c("0 - 20", "20 - 40","40 - 60","60 - 80","80 - 99","100", "Unknown"))+
-      scale_x_continuous(breaks= scales::pretty_breaks())+
+      geom_line(aes(water_elevation, y = -100, color = "No Pipes"))+
+      geom_point(aes(water_elevation, y = -100, color = "No Pipes"))+
+      scale_fill_manual(values = cols,name = "Volume filled (%)", limits = names(cols), labels = c("0 - 20", "20 - 40","40 - 60","60 - 80","80 - 99","100+", "Unknown", "Low Confidence"))+
+      scale_x_continuous(breaks= scales::pretty_breaks(), limits = c(xmin, xmax))+
       scale_y_continuous(breaks= scales::pretty_breaks(), labels = scales::label_percent())+
       ylab("Relative amount")+
+      scale_color_manual(values = c("black"), name = element_blank())+
       xlab(paste0("MHHW (",units(total_impacted_structures$s_inv_elev)$numerator,")"))+
       theme_bw()+
-      theme(text = element_text(family = "Times New Roman"))+
+      theme(text = element_text(family = "Times New Roman"),
+            legend.key.size = unit(5,"mm"),
+            legend.margin=margin(-0.5,0,0,0, unit="cm"),
+            legend.title = element_text(size = 12))+
       theme(...)
 
     # confidence_low <- ggplot2::ggplot(data = confidence_plot_data %>% units::drop_units() %>%
@@ -223,7 +227,7 @@ viz_structures <- function(model_output,
     #   guides(fill=F)+
     #   ggtitle("High confidence")
     #   theme(...)
-    #
+
     # confidence <- confidence_low / confidence_high
 
     impact_plot <- impacted_struc_total + impacted_struc_ratio

@@ -17,6 +17,7 @@ model_inundation(
   DEM_RMSE = 0.2,
   conv_RMSE = 0.1,
   pipe_RMSE = 0.1,
+  DEM_confidence = F,
   minimum_area = 0.6,
   minimum_area_units = "km^2",
   min_elev_cutoff = -5,
@@ -53,6 +54,8 @@ Units same as model inverts}
 
 \item{pipe_RMSE}{RMSE of elevation or depth measurements of pipes in same units as model$pipes. Default is 0.1}
 
+\item{DEM_confidence}{Calculate confidence rasters for DEMs? Default is F}
+
 \item{minimum_area}{Minimum area of flooded area to keep}
 
 \item{minimum_area_units}{Units of flooded area}
@@ -86,7 +89,6 @@ Run bathtub inundation model
 # step = 3/12,
 # model_ponding = T,
 # site_name = "beaufort",
-# overwrite = T,
 # minimum_area = 0.01,
 # workspace = workspace
 # )

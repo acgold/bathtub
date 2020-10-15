@@ -14,6 +14,7 @@
 #' @param DEM_RMSE RMSE of DEM in same units as 'elev_units'. Default is 0.2.
 #' @param conv_RMSE RMSE of conversion from NAVD88 to MHHW. Default is 0.1 m
 #' @param pipe_RMSE RMSE of elevation or depth measurements of pipes in same units as model$pipes. Default is 0.1
+#' @param DEM_confidence Calculate confidence rasters for DEMs? Default is F
 #' @param minimum_area Minimum area of flooded area to keep
 #' @param minimum_area_units Units of flooded area
 #' @param min_elev_cutoff Minimum cutoff for elevation values
@@ -37,7 +38,6 @@
 #'# step = 3/12,
 #'# model_ponding = T,
 #'# site_name = "beaufort",
-#'# overwrite = T,
 #'# minimum_area = 0.01,
 #'# workspace = workspace
 #'# )
@@ -55,6 +55,7 @@ model_inundation <- function(model,
                              DEM_RMSE = 0.2,
                              conv_RMSE = 0.1,
                              pipe_RMSE = 0.1,
+                             DEM_confidence = F,
                              minimum_area = 0.6,
                              minimum_area_units = "km^2",
                              min_elev_cutoff = -5,
@@ -119,6 +120,7 @@ model_inundation <- function(model,
     "DEM_RMSE" = DEM_RMSE,
     "conv_RMSE" = conv_RMSE,
     "pipe_RMSE" = pipe_RMSE,
+    "DEM_confidence" = DEM_confidence,
     "minimum_area" = units::drop_units(minimum_area),
     "minimum_area_units" = minimum_area_units,
     "min_elev_cutoff" =  min_elev_cutoff,
@@ -139,26 +141,27 @@ model_inundation <- function(model,
     pb$tick(0)
 
     for(i in elev_seq){
+      if(DEM_confidence == T){
+        surface_error_no_units <- units::drop_units(surface_error)
 
-      surface_error_no_units <- units::drop_units(surface_error)
+        DEM_error_rast <- terra::app(DEM_adjusted,
+                                     fun = function(x){
+                                       pnorm((i - x)/surface_error_no_units)
+                                     })
 
-      DEM_error_rast <- terra::app(DEM_adjusted,
-                                   fun = function(x){
-                                     pnorm((i - x)/surface_error_no_units)
-                                   })
+        DEM_error_rast[DEM_error_rast < 0.2] <- NA
+        DEM_error_rast <- DEM_error_rast > 0.8
 
-      DEM_error_rast[DEM_error_rast < 0.2] <- NA
-      DEM_error_rast <- DEM_error_rast > 0.8
+        DEM_error_stars <- stars::st_as_stars(raster::raster(DEM_error_rast),crs = terra::crs(DEM_error_rast))
+        DEM_error_sf <- sf::st_as_sf(DEM_error_stars,
+                                       as_points = FALSE,
+                                       merge = T)
+        colnames(DEM_error_sf)[1] <- "confidence"
 
-      DEM_error_stars <- stars::st_as_stars(raster::raster(DEM_error_rast),crs = terra::crs(DEM_error_rast))
-      DEM_error_sf <- sf::st_as_sf(DEM_error_stars,
-                                     as_points = FALSE,
-                                     merge = T)
-      colnames(DEM_error_sf)[1] <- "confidence"
-
-      DEM_error_sf <- DEM_error_sf %>%
-        group_by(confidence) %>%
-        summarise()
+        DEM_error_sf <- DEM_error_sf %>%
+          group_by(confidence) %>%
+          summarise()
+      }
 
       select_rast <- DEM_adjusted < i
       select_rast[select_rast == 0] <- NA
@@ -219,7 +222,10 @@ model_inundation <- function(model,
       total_np_structures <- rbind(total_np_structures, np_structures %>% tibble::add_column(water_elevation = units::set_units(i, units(nodes$inv_elev)$numerator)))
       total_impacted_pipes <- rbind(total_impacted_pipes, impacted_pipes %>% tibble::add_column(water_elevation = units::set_units(i, units(nodes$inv_elev)$numerator)))
       total_flooding <- rbind(total_flooding, select_rast_sf %>% tibble::add_column(water_elevation = units::set_units(i, units(nodes$inv_elev)$numerator)))
-      total_inundation_confidence <- rbind(total_inundation_confidence, DEM_error_sf %>% tibble::add_column(water_elevation = units::set_units(i, units(nodes$inv_elev)$numerator)))
+
+      if(DEM_confidence == T){
+        total_inundation_confidence <- rbind(total_inundation_confidence, DEM_error_sf %>% tibble::add_column(water_elevation = units::set_units(i, units(nodes$inv_elev)$numerator)))
+      }
 
       pb$tick(1)
 
@@ -287,7 +293,20 @@ model_inundation <- function(model,
       bathtub::save_w_units(x = total_np_structures, full_path = paste0(workspace, "/results/np_struc.gpkg"), overwrite = overwrite)
       bathtub::save_w_units(x = total_impacted_pipes, full_path = paste0(workspace, "/results/imp_pipes.gpkg"), overwrite = overwrite)
       bathtub::save_w_units(x = total_flooding, full_path = paste0(workspace, "/results/flooding_extent.gpkg"), overwrite = overwrite)
-      bathtub::save_w_units(x = total_inundation_confidence, full_path = paste0(workspace, "/results/inundation_confidence.gpkg"), overwrite = overwrite)
+
+      if(DEM_confidence == T){
+        bathtub::save_w_units(x = total_inundation_confidence, full_path = paste0(workspace, "/results/inundation_confidence.gpkg"), overwrite = overwrite)
+
+        return(list(pipes = total_impacted_pipes,
+                    nodes = total_impacted_nodes,
+                    np_nodes = total_np_nodes,
+                    structures = total_impacted_structures,
+                    np_structures = total_np_structures,
+                    flooding = total_flooding,
+                    ponding = ponding_shps,
+                    inundation_confidence = total_inundation_confidence))
+
+        }
 
       return(list(pipes = total_impacted_pipes,
                   nodes = total_impacted_nodes,
@@ -295,8 +314,7 @@ model_inundation <- function(model,
                   structures = total_impacted_structures,
                   np_structures = total_np_structures,
                   flooding = total_flooding,
-                  ponding = ponding_shps,
-                  inundation_confidence = total_inundation_confidence))
+                  ponding = ponding_shps))
 
     }
 
@@ -311,15 +329,25 @@ model_inundation <- function(model,
     bathtub::save_w_units(x = total_np_structures, full_path = paste0(workspace, "/results/np_struc.gpkg"), overwrite = overwrite)
     bathtub::save_w_units(x = total_impacted_pipes, full_path = paste0(workspace, "/results/imp_pipes.gpkg"), overwrite = overwrite)
     bathtub::save_w_units(x = total_flooding, full_path = paste0(workspace, "/results/flooding_extent.gpkg"), overwrite = overwrite)
-    bathtub::save_w_units(x = total_inundation_confidence, full_path = paste0(workspace, "/results/inundation_confidence.gpkg"), overwrite = overwrite)
+
+    if(DEM_confidence == T){
+      bathtub::save_w_units(x = total_inundation_confidence, full_path = paste0(workspace, "/results/inundation_confidence.gpkg"), overwrite = overwrite)
+
+      return(list(pipes = total_impacted_pipes,
+                  nodes = total_impacted_nodes,
+                  np_nodes = total_np_nodes,
+                  structures = total_impacted_structures,
+                  np_structures = total_np_structures,
+                  flooding = total_flooding,
+                  inundation_confidence = total_inundation_confidence))
+      }
 
     return(list(pipes = total_impacted_pipes,
                 nodes = total_impacted_nodes,
                 np_nodes = total_np_nodes,
                 structures = total_impacted_structures,
                 np_structures = total_np_structures,
-                flooding = total_flooding,
-                inundation_confidence = total_inundation_confidence))
+                flooding = total_flooding))
   }
 
   if(!is.null(overlay)){
