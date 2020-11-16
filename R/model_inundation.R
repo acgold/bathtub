@@ -73,13 +73,20 @@ model_inundation <- function(model,
   nodes <- model$nodes
   structures <- model$structures
 
+  if(NA %in% model$nodes$inv_elev){
+    warning("NAs in invert elevation values - propagation may underestimate flooding because NAs do not propagate water levels. Re-run 'assemble_net_model' with a larger number for the 'interp_rnds' parameter")
+  }
+
   # Conversion factor for elevations
   conv_fac <- 1 / units::drop_units(units::set_units(units::set_units(1, elev_units), units(pipes$from_inv_elev)$numerator))
 
+  # Minimum area threshold to remove isolated areas and keep receiving waters
   minimum_area <- units::set_units(minimum_area, minimum_area_units)
 
+  # Convert elevation to consistent units
   DEM_adjusted <- elev / conv_fac
 
+  # Remove values below elevation cutoff
   DEM_adjusted[DEM_adjusted < min_elev_cutoff] <- min_elev_cutoff
 
   # Set units for RMSE
@@ -87,7 +94,7 @@ model_inundation <- function(model,
   conv_RMSE <- units::set_units(conv_RMSE, "m")
   pipe_RMSE <- units::set_units(pipe_RMSE, units(pipes$from_inv_elev)$numerator)
 
-  # Error calcs
+  # Error calcs. Using 'type' = "depth" incorporates error from DEM, conversion, and pipe measurements
   surface_error <- units::set_units(sqrt((DEM_RMSE^2) + (conv_RMSE^2)),units(pipes$from_inv_elev)$numerator)
 
   if(model_info$values[model_info$parameters == "type"] != "depth"){
@@ -135,13 +142,14 @@ model_inundation <- function(model,
   if(is.null(overlay)){
     cat("Using provided DEM and water level scenarios to estimate flooding extent...\n")
 
+    # Create sequence of elevation values to model
     elev_seq <-  units::set_units(seq(from = from_elevation, to = to_elevation, by = step), value = units(pipes$from_inv_elev)$numerator)
 
     pb <- progress::progress_bar$new(format = " Running the 1-D model [:bar] :current/:total (:percent)", total = length(elev_seq))
     pb$tick(0)
 
     for(i in elev_seq){
-      if(DEM_confidence == T){
+      if(DEM_confidence == T){ # this takes awhile to do surface error for DEM, by default 'DEM_confidence'= F
         surface_error_no_units <- units::drop_units(surface_error)
 
         DEM_error_rast <- terra::app(DEM_adjusted,
@@ -149,8 +157,8 @@ model_inundation <- function(model,
                                        pnorm((i - x)/surface_error_no_units)
                                      })
 
-        DEM_error_rast[DEM_error_rast < 0.2] <- NA
-        DEM_error_rast <- DEM_error_rast > 0.8
+        DEM_error_rast[DEM_error_rast <= 0.2] <- NA
+        DEM_error_rast <- DEM_error_rast >= 0.8
 
         DEM_error_stars <- stars::st_as_stars(raster::raster(DEM_error_rast),crs = terra::crs(DEM_error_rast))
         DEM_error_sf <- sf::st_as_sf(DEM_error_stars,
@@ -163,9 +171,11 @@ model_inundation <- function(model,
           summarise()
       }
 
+      # Select areas where DEM is < the elevation being modeled
       select_rast <- DEM_adjusted < i
       select_rast[select_rast == 0] <- NA
 
+      # Convert to stars in order to quickly convert to polygons
       select_rast_stars <- stars::st_as_stars(raster::raster(select_rast), crs = terra::crs(select_rast))
       select_rast_sf <- sf::st_as_sf(select_rast_stars,
                                  as_points = FALSE,
@@ -176,12 +186,15 @@ model_inundation <- function(model,
 
       colnames(select_rast_sf)[1] <- "lyr1"
 
+      # Will select outlets if water level is greater than invert elevation of outlet even if it doesn't not spatially overlap
       if(use_outlets == T){
         select_nodes <- nodes %>%
           sf::st_join(select_rast_sf %>% sf::st_transform(sf::st_crs(nodes))) %>%
           dplyr::filter(!is.na(lyr1) | (outlet == T & inv_elev < units::set_units(i, units(nodes$inv_elev)$numerator))) %>%
           dplyr::select(-c(lyr1,area))
       }
+
+      # Will not select outlets if water level is greater than invert elevation of outlet but doesn't spatially overlap
 
       if(use_outlets == F){
         select_nodes <- nodes %>%
@@ -190,22 +203,26 @@ model_inundation <- function(model,
           dplyr::select(-c(lyr1,area))
       }
 
+      # Find all connected nodes that would be inundated at specific water level
       impacted_nodes <- propagate_flood(pipes = model[[1]], nodes= model[[2]], structures = model[[3]], select_nodes = select_nodes, water_elevation = i)
 
+      # Calculate confidence class of each impacted node
       impacted_nodes <- impacted_nodes %>%
         dplyr::mutate(node_fill_height = dplyr::if_else(units::set_units(i,units(inv_elev)$numerator) > inv_elev, (units::set_units(i, units(inv_elev)$numerator) + abs(inv_elev)) - (inv_elev + abs(inv_elev)),units::set_units(0,units(inv_elev)$numerator)),
                node_perc_fill = dplyr::if_else(units::set_units(i, units(inv_elev)$numerator) < elev,(node_fill_height * 100)/((elev + abs(inv_elev)) - (inv_elev + abs(inv_elev))), 100),
                confidence = pnorm(units::drop_units((units::set_units(i, units(inv_elev)$numerator) - inv_elev)/pipe_error)),
-               confidence_class = ifelse(confidence > 0.8, "High","Low"))
+               confidence_class = ifelse(confidence >= 0.8, "High","Low"))
 
+      # Calculate confidence class of each impacted structure
       impacted_structures <- structures %>%
         dplyr::filter(structureID %in% impacted_nodes$structureID) %>%
         dplyr::mutate(structure_fill_height = dplyr::if_else(units::set_units(i,units(s_inv_elev)$numerator) > s_inv_elev,(units::set_units(i,units(s_inv_elev)$numerator) + abs(s_inv_elev)) - (s_inv_elev + abs(s_inv_elev)),units::set_units(0,units(s_inv_elev)$numerator)),
                structure_perc_fill = dplyr::if_else(units::set_units(i,units(s_inv_elev)$numerator) < s_elev,(structure_fill_height * 100)/((s_elev + abs(s_inv_elev)) - (s_inv_elev + abs(s_inv_elev))), 100),
                structure_surcharge = dplyr::if_else((units::set_units(i,units(s_inv_elev)$numerator)) > s_elev, (units::set_units(i,units(s_inv_elev)$numerator) - s_elev), (units::set_units(0,units(s_inv_elev)$numerator))),
                confidence = pnorm(units::drop_units((units::set_units(i, units(s_inv_elev)$numerator) - s_inv_elev)/pipe_error)),
-               confidence_class = ifelse(confidence > 0.8, "High","Low"))
+               confidence_class = ifelse(confidence >= 0.8, "High","Low"))
 
+      # Structures that are initially selected as impacted - this is the "no pipes" scenario that does not propogate inundation
       np_structures <- structures %>%
         sf::st_join(select_rast_sf %>% sf::st_transform(sf::st_crs(nodes))) %>%
         dplyr::filter(!is.na(lyr1)) %>%
@@ -216,6 +233,7 @@ model_inundation <- function(model,
 
       impacted_pipes <- pipes[pipes$edgeID %in% impacted_nodes$edgeID, ]
 
+      # Assign results to objects
       total_impacted_nodes <- rbind(total_impacted_nodes, impacted_nodes %>% tibble::add_column(water_elevation = units::set_units(i, units(nodes$inv_elev)$numerator)))
       total_np_nodes <- rbind(total_np_nodes, select_nodes %>% tibble::add_column(water_elevation = units::set_units(i, units(nodes$inv_elev)$numerator)))
       total_impacted_structures <- rbind(total_impacted_structures, impacted_structures %>% tibble::add_column(water_elevation = units::set_units(i, units(nodes$inv_elev)$numerator)))
@@ -231,6 +249,7 @@ model_inundation <- function(model,
 
     }
 
+    # Modeling ponding shows overland flooding that is connected t surcharging structures and is not connected to receiving waters by surface water.
     if(model_ponding == T){
 
       ponding_shps <- NULL
@@ -277,14 +296,17 @@ model_inundation <- function(model,
         pb$tick(1)
       }
 
+      # Write ponding areas, if any
       raster::writeRaster(x = fasterize::fasterize(sf = ponding_shps, raster = raster::raster(DEM_adjusted), field = "water_elevation",fun = "min"),
                   filename = paste0(workspace, "/results/ponding_extent.tif"),
                   overwrite = T)
 
+      # Write flooding areas, if any
       raster::writeRaster(x = fasterize::fasterize(sf = total_flooding %>% units::drop_units(), raster = raster::raster(DEM_adjusted), field = "water_elevation",fun = "min"),
                   filename = paste0(workspace, "/results/flooding_extent.tif"),
                   overwrite = T)
 
+      # Write results of modeling
       write.csv(info_tibble, paste0(workspace,"/results/results_info.csv"))
       bathtub::save_w_units(x = ponding_shps, full_path = paste0(workspace, "/results/ponding_extent.gpkg"), overwrite = overwrite)
       bathtub::save_w_units(x = total_impacted_nodes, full_path = paste0(workspace, "/results/imp_nodes.gpkg"), overwrite = overwrite)

@@ -43,6 +43,7 @@ DEM_setup <-
     conv_fac <-  units::set_units(units::set_units(1, value = elev_units),value = "m") %>% units::drop_units()
     minimum_area <- units::set_units(minimum_area, "km^2")
 
+    # Convert any raster inputs to "SpatRaster"
     if(class(large_DEM)[1] != "SpatRaster"){
       large_DEM <-  terra::rast(large_DEM)
     }
@@ -51,7 +52,7 @@ DEM_setup <-
       conversion_raster <- terra::rast(conversion_raster)
     }
 
-    #Ff there are other network layer (culverts, virtual drainlines, etc.), they will be combined with pipes here using only spatial attributes
+    # If there are other network layer (culverts, virtual drainlines, etc.), they will be combined with pipes here using only spatial attributes
     if(!is.null(other_network_layers)) {
       cat("Combining all network layers...\n")
 
@@ -93,7 +94,7 @@ DEM_setup <-
                                      nrows = ycells,
                                      crs = terra::crs(final_extent))
 
-    #reproject extent to crs of large_DEM, clip large_DEM, convert crs to pipe crs
+    # Reproject extent to crs of large_DEM, clip large_DEM, convert crs to pipe crs
     if (base::file.exists(base::paste0(workspace, "/DEMs/elev_clip_proj.tif")) & overwrite == F) {
       elev_navd_small_proj <-
         terra::rast(base::paste0(workspace, "/DEMs/elev_clip_proj.tif"))
@@ -117,7 +118,7 @@ DEM_setup <-
 
     }
 
-    #reproject extent to crs of conversion_raster,  clip conversion_raster, convert crs to pipe crs
+    # Reproject extent to crs of conversion_raster,  clip conversion_raster, convert crs to pipe crs
     if (base::file.exists(base::paste0(workspace, "/DEMs/conv_clip_proj.tif")) & overwrite == F) {
       conversion_small_proj <-
         terra::rast(paste0(workspace, "/DEMs/conv_clip_proj.tif"))
@@ -137,16 +138,9 @@ DEM_setup <-
           overwrite = T
         )
 
-      # conversion_small_proj <-
-      #   terra::resample(
-      #     x = conversion_small_proj,
-      #     y = elev_navd_small_proj,
-      #     filename = base::paste0(workspace, "/DEMs/conv_clip_proj.tif"),
-      #     overwrite = T
-      #   )
     }
 
-    #create MHHW elevation raster
+    # Create MHHW elevation raster
     if (base::file.exists(base::paste0(workspace, "/DEMs/MHHW_clip_proj.tif")) & overwrite == F) {
       elev <-
         terra::rast(base::paste0(workspace, "/DEMs/MHHW_clip_proj.tif"))
@@ -160,9 +154,6 @@ DEM_setup <-
 
       conv_function <- function(x, y, z){x - (y/z)}
 
-      # elev_navd_small_proj <- terra::expand(elev_navd_small_proj, conversion_small_proj)
-      # conversion_small_proj <- terra::expand(conversion_small_proj,elev_navd_small_proj)
-
       elev <-
         terra::lapp(
           x = c(elev_navd_small_proj,
@@ -174,7 +165,7 @@ DEM_setup <-
         )
     }
 
-    #Trace upstream if wanting to propagate conversion factor upstream (like for Nags Head)
+    # Trace upstream if wanting to propagate conversion factor upstream (like for Nags Head)
     if(trace_upstream == F){
       return(elev)
     }
@@ -186,17 +177,9 @@ DEM_setup <-
       }
 
       if (!base::file.exists(base::paste0(workspace, "/DEMs/MHHW_clip_proj_traced.tif")) | overwrite == T) {
-        # elev[elev<-5] <- NA
-        # water_level <- elev < 0
-        # water_level[water_level == 0] <- NA
 
         cat("Tracing MHHW conversion upstream...\n")
-        # select_rast <- terra::app(
-        #   x = elev,
-        #   fun = function(x) {
-        #     x < 0
-        #   }
-        # )
+
         select_rast <- elev < 0
         select_rast[select_rast == 0] <- NA
 
@@ -208,22 +191,6 @@ DEM_setup <-
                                        connect8 = T) %>%
           mutate(area = sf::st_area(.)) %>%
           filter(area > minimum_area)
-
-        # clumps <- raster::clump(water_level,directions=8)
-        #
-        # clump_freq <- freq(clumps)
-        # clump_freq_tibble <- tibble::as_tibble(clump_freq) %>%
-        #   dplyr::mutate(count_km2 = (count * (res(water_level)[1]^2))/1.076e+7) %>%
-        #   dplyr::filter(count_km2 > minimum_area) %>%
-        #   stats::na.omit()
-        #
-        # large_select_raster <- clumps %in% c(clump_freq_tibble$value)
-        # large_select_raster[large_select_raster == 0] <- NA
-
-        # large_select_raster <- raster::projectRaster(large_select_raster,
-        #                                              final_extent,
-        #                                              filename = base::paste0(workspace, "/DEMs/water_level.tif"),
-        #                                              overwrite = T)
 
         pipe_buffer <- sf::st_buffer(pipes, dist = trace_buffer) %>%
           sf::st_union() %>%
@@ -262,29 +229,11 @@ DEM_setup <-
 
         rl <- vx$as.RasterLayer(band=1)
 
-        # rast_conv_traced <- fasterize::fasterize(pipe_merge_test, raster = conversion_small_proj, field = "conv")
-        #
-        # writeRaster(rl, filename = base::paste0(workspace,"/DEMs/traced_conversion_rast.tif"), overwrite = T)
-
-        # rl <- raster::rasterize(pipe_merge_test,
-        #                          conversion_small_proj,
-        #                          field = "conv",
-        #                          update = T,
-        #                          filename = base::paste0(workspace,"/DEMs/traced_conversion_rast.tif"), overwrite = T)
-
         cat("Creating MHHW DEM with traced conversion...\n")
 
         rl <- terra::rast(rl)
 
         new_elev <- elev_navd_small_proj - rl
-          # terra::lapp(
-          #   x = c(elev_navd_small_proj,rl),
-          #   fun = function(x) {
-          #     x[[1]] - x[[2]]
-          #   },
-          #   filename = base::paste0(workspace, "/DEMs/MHHW_clip_proj_traced.tif"),
-          #   overwrite = T
-          # )
 
         return(new_elev)
       }

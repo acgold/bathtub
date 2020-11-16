@@ -1,3 +1,34 @@
+#' Visualize impacts on structures from bathtub inundation modeling
+#'
+#' @param model_output A 'bathtub' model output item
+#' @param model A 'bathtub' model item
+#' @param elev The DEM used in modeling inundation created by 'setup_DEM'
+#' @param type_column Column in model item that indicates the type of structures. Default is NULL
+#' @param filter_value Type of structure (as string) to select from 'type_column'. Multiple values should be put in vector (i.e., using c() ). Default is NULL
+#' @param type Static "plot" or "interactive_map"
+#' @param hide_labels Hide labels of column values? T or F, default is F
+#' @param simplify_labels Simplify labels of column values? T or F, default is T
+#' @param label_size Size of labels, default is 2
+#' @param xmin Set the minimum value of the x axis
+#' @param xmax Set the maximum value of x axis
+#' @param filename Name of the plot. Will be stored in the 'bathtub_output/figures/
+#' @param workspace Path to bathtub output folder
+#'
+#' @return A \code{ggplot} plot (type = "plot") or \code{mapview} map (type = "interactive_map") of structures impacted during inundation modeling
+#' @examples
+#'bft_plot <- viz_structures(model_output = bft_model_output,
+#'model = bft_model_1D,
+#'elev = raster::raster(bft_elev),
+#'type_column = "Code",
+#'filter_value = c("D_I", "C_B"),
+#'type = "plot",
+#'hide_labels = T,
+#'simplify_labels = T,
+#'label_size = 2,
+#'filename = "bft_structures_impact_plot.png",
+#'workspace = workspace,
+#'panel.grid = element_blank())
+
 viz_structures <- function(model_output,
                            model,
                            elev,
