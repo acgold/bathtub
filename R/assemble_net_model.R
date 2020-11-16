@@ -3,7 +3,7 @@
 #' @param pipes A \code{sf} object denoting stormwater pipes. Result of \code{setup_pipes}
 #' @param structures A \code{sf} object denoting stormwater structures. Result of \code{setup_structures}
 #' @param type Type of invert survey data. 'depth', 'elevation', or 'none'
-#' @param use_raster_elevation Extract elevation and use as surface elevations?
+#' @param use_raster_elevation Extract elevation from DEM and use as surface elevations?
 #' @param elev \code{RasterLayer} DEM object for inundation modeling. Result of \code{DEM_setup}
 #' @param elev_units Units of \code{elev} values
 #' @param min_elev_cutoff Minimum cutoff for elevation values
@@ -40,22 +40,22 @@
 #'# )
 
 assemble_net_model <- function(pipes,
-                                   structures,
-                                   type = "elevation",
-                                   use_raster_elevation = T,
-                                   elev,
-                                   elev_units = "m",
-                                   min_elev_cutoff = -5,
-                                   buffer = 0.5,
-                                   interp_rnds = 5,
+                               structures,
+                               type = "elevation",
+                               use_raster_elevation = T,
+                               elev,
+                               elev_units = "m",
+                               min_elev_cutoff = -5,
+                               buffer = 0.5,
+                               interp_rnds = 5,
                                interp_adjust = 0.1,
-                                   guess_connectivity = T,
-                                   up_condition = NULL ,
-                                   dn_condition = NULL ,
-                                   structure_condition = NULL,
-                                   obstruction_keywords = NULL,
-                                   obstruction_percent = F,
-                                  overwrite = T,
+                               guess_connectivity = T,
+                               up_condition = NULL ,
+                               dn_condition = NULL ,
+                               structure_condition = NULL,
+                               obstruction_keywords = NULL,
+                               obstruction_percent = F,
+                               overwrite = T,
                                site_name,
                                workspace
 ) {
@@ -114,6 +114,7 @@ assemble_net_model <- function(pipes,
 
   structures_new <- structures
 
+  # Use the DEM values as surface elevation of nodes
   if(use_raster_elevation == T){
     start_points_elev <- source_nodes %>%
       sf::st_as_sf(coords = c('X', 'Y')) %>%
@@ -133,6 +134,8 @@ assemble_net_model <- function(pipes,
       sf::st_join(structures %>% dplyr::select(structureID, s_elev, s_inv_elev)) %>%
       tibble::as_tibble()
   }
+
+  # Use a specific column of values as surface elevation values of nodes
 
   if(use_raster_elevation == F){
     start_points_elev <- source_nodes %>%
@@ -273,6 +276,8 @@ assemble_net_model <- function(pipes,
     rbind(new_nodes_end) %>%
     sf::st_as_sf()
 
+
+  # Interpolate missing values of invert elevations
   interp <- bathtub::interpolate_network(
     pipes = pipes_elev,
     nodes = new_nodes,
@@ -280,9 +285,11 @@ assemble_net_model <- function(pipes,
     adjustment = interp_adjust
   )
 
-  pipes_interp <- interp[[1]] %>% sf::st_as_sf() #%>% sf::st_set_crs(final_crs)
-  nodes_interp <- interp[[2]] %>% sf::st_as_sf() #%>% sf::st_set_crs(final_crs)
+  pipes_interp <- interp[[1]] %>% sf::st_as_sf()
+  nodes_interp <- interp[[2]] %>% sf::st_as_sf()
 
+
+  # Finds and notates features that overlap but aren't notated as connected. Do no use if you have lots of overlapping pipes that are not, in fact, connected
   if(guess_connectivity == T){
     cat("Analyzing network to identify connectivity errors...\n")
     nodes_interp <- nodes_interp %>%
@@ -297,6 +304,7 @@ assemble_net_model <- function(pipes,
       ungroup()
   }
 
+  # Following workflow estimates which nodes are outlets - they are dead ends that are among the first to be inundated
   from_elevation = -3
   to_elevation = 1
   step = 1
@@ -314,13 +322,6 @@ assemble_net_model <- function(pipes,
   outlet_id <- tibble()
 
   for(i in units::drop_units(elev_seq)){
-
-    # select_rast <- terra::app(
-    #   DEM_adjusted,
-    #   fun = function(x) {
-    #     x < i
-    #   }
-    # )
 
     select_rast <- DEM_adjusted < i
 
@@ -366,6 +367,7 @@ assemble_net_model <- function(pipes,
     dplyr::ungroup() %>%
     st_as_sf()
 
+  # If there are obstructions noted, they will be added here. Otherwise, data are not modified here
   with_obstructions <- bathtub::add_obstructions(
     pipes = pipes_interp,
     nodes = nodes_interp,
