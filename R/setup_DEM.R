@@ -223,11 +223,10 @@ DEM_setup <-
           dplyr::left_join(point_extract, by = "ID") %>%
           filter(!is.na(conv))
 
-        vx <- velox::velox(raster::raster(conversion_small_proj))
-
-        vx$rasterize(pipe_merge_test, field = "conv", band = 1)
-
-        rl <- vx$as.RasterLayer(band=1)
+        rl <- fasterize::fasterize(sf = pipe_merge_test %>%
+                                     sf::st_buffer(dist=0.1),
+                                   raster = raster::raster(conversion_small_proj),
+                                   field = "conv")
 
         cat("Creating MHHW DEM with traced conversion...\n")
 

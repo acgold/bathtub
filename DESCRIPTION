@@ -35,7 +35,7 @@ Imports:
   tidyverse,
   tmap,
   units,
-  velox (>= 0.2.0)
+  fasterize
 RoxygenNote: 7.1.1
 Depends: 
     R (>= 2.10),
