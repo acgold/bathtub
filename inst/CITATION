@@ -1,18 +1,17 @@
-citHeader("To cite bathtub in publications use:")
+citHeader("To cite bathtub in publications use, please cite the article that presented the model:")
 
 citEntry(entry = "Article",
-         title        = "Article title",
-         author       =  person("Adam","Gold",email = "gold@unc.edu"),
-         journal      = "Journal",
-         year         = "2020",
-         volume       = "1",
-         number       = "1",
-         pages        = "1--25",
-         url          = "",
+         title        = "Inundation of Stormwater Infrastructure is Common and Increases Risk of Flooding in Coastal Urban Areas along the US Atlantic Coast",
+         author       =  person("Adam","Gold",email = "gold@unc.edu"), person("Chelsea", "Brown"), person("Suzanne", "Thompson"), person("Michael", "Piehler"),
+         journal      = "Earth's Future",
+         year         = "2022",
+         doi          = "10.1029/2021EF002139",
+         url          = "https://onlinelibrary.wiley.com/doi/10.1029/2021EF002139",
          
          textVersion  =
-             paste("Adam Gold (2020).",
-                   "bathtub.",
-                   "Journal",
-                   "URL none yet")
+             paste("Gold et al. (2022).",
+                   "Inundation of Stormwater Infrastructure is Common and Increases Risk of Flooding in Coastal Urban Areas along the US Atlantic Coast",
+                   "Earth's Future",
+                   "DOI: 10.1029/2021EF002139",
+                   "https://onlinelibrary.wiley.com/doi/10.1029/2021EF002139")
 )
